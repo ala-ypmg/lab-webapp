@@ -21,7 +21,6 @@ def seed_users():
     
     # Define initial users (user_id, email, passcode)
     initial_users = [
-        ('ala', 'ala@ypmg.com', '6925'),
         ('user1', 'user1@ypmg.com', '1111'),
         ('user2', 'user2@ypmg.com', '2222'),
         ('histology_tech', 'histology_tech@ypmg.com', '3333'),
@@ -58,7 +57,7 @@ def seed_users():
     print("\nCreating admin users...")
     
     admin_assignments = [
-        ('ala', 3),        # Full admin access
+        ('admin', 3),        # Full admin access
         ('labmanager', 2), # Export and submissions access
     ]
     

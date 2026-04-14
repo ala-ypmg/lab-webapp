@@ -133,6 +133,17 @@ def init_database():
         )
     ''')
     
+    # Create Accessioning Submissions table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS accessioning_submissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            submission_data TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+
     # Create indexes for better performance
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_user_id ON users(user_id);')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);')
@@ -143,6 +154,8 @@ def init_database():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_submissions_timestamp ON form_submissions(submitted_at);')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_audit_user_id ON audit_log(user_id);')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_accessioning_user_id ON accessioning_submissions(user_id);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_accessioning_submitted_at ON accessioning_submissions(submitted_at);')
     
     # Commit changes
     conn.commit()
@@ -155,6 +168,7 @@ def init_database():
     print("  - form_submissions")
     print("  - admin_users")
     print("  - audit_log")
+    print("  - accessioning_submissions")
 
 if __name__ == '__main__':
     init_database()

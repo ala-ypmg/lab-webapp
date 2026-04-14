@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Resend Confirmation - Lab Workflow Webapp{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-card">
+        <h2>Resend Confirmation</h2>
+        <p class="subtitle">Enter your email for a new confirmation link</p>
+        
+        <form method="POST" action="{{ url_for('auth.resend_confirmation') }}" novalidate>
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="you@ypmg.com") }}
+                {% if form.email.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.email.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-block">Send Confirmation Email</button>
+            </div>
+        </form>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <p><a href="{{ url_for('auth.login') }}">Back to Login</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-focus on email field
+    document.addEventListener('DOMContentLoaded', function() {
+        const emailField = document.getElementById('email');
+        if (emailField) {
+            emailField.focus();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Workflow Data - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-card">
+        <h2>Lab Workflow Entry - Workflow Data</h2>
+        {% if session.department == 'Checkout' %}
+        <p class="subtitle">Page 3 of 4</p>
+        {% else %}
+        <p class="subtitle">Page 2 of 3</p>
+        {% endif %}
+        
+        <form method="POST" action="{{ url_for('page2.workflow') }}" novalidate>
+            {{ form.hidden_tag() }}
+            
+            <div class="form-section">
+                <h3>Time Information</h3>
+                <div class="form-group">
+                    {{ form.final_block_time.label(class="form-label") }}
+                    {{ form.final_block_time(class="form-control" + (" is-invalid" if form.final_block_time.errors else ""), placeholder="HH:MM (24-hour format)") }}
+                    {% if form.final_block_time.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.final_block_time.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <small class="form-text">Optional - Enter time in 24-hour format (e.g., 14:30)</small>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>Workflow Status</h3>
+
+                <div class="form-subsection">
+                    <h4>PT Link</h4>
+                    <div class="checkbox-grid">
+                        <div class="form-group checkbox-group">
+                            {{ form.baked_ihcs_pt_link(class="form-checkbox") }}
+                            {{ form.baked_ihcs_pt_link.label(class="checkbox-label") }}
+                        </div>
+                        <div class="form-group checkbox-group">
+                            {{ form.ihcs_in_pt_link(class="form-checkbox") }}
+                            {{ form.ihcs_in_pt_link.label(class="checkbox-label") }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-subsection">
+                    <h4>DAKO</h4>
+                    <div class="checkbox-grid">
+                        <div class="form-group checkbox-group">
+                            {{ form.non_baked_ihc(class="form-checkbox") }}
+                            {{ form.non_baked_ihc.label(class="checkbox-label") }}
+                        </div>
+                        <div class="form-group checkbox-group">
+                            {{ form.ihcs_in_buffer_wash(class="form-checkbox") }}
+                            {{ form.ihcs_in_buffer_wash.label(class="checkbox-label") }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-subsection">
+                    <h4>Pathologist Requests</h4>
+                    <div class="form-group">
+                        <div class="radio-group">
+                            {% for subfield in form.pathologist_requests_status %}
+                                <div class="radio-item">
+                                    {{ subfield(class="form-radio", id="pathologist_requests_status_" + loop.index0|string) }}
+                                    {{ subfield.label(class="radio-label") }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div id="request-sources" class="conditional-fields" style="display: none;">
+                        <p class="form-text">Select source(s) of pending request:</p>
+                        <div class="checkbox-grid">
+                            <div class="form-group checkbox-group">
+                                {{ form.request_source_email(class="form-checkbox") }}
+                                {{ form.request_source_email.label(class="checkbox-label") }}
+                            </div>
+                            <div class="form-group checkbox-group">
+                                {{ form.request_source_orchard(class="form-checkbox") }}
+                                {{ form.request_source_orchard.label(class="checkbox-label") }}
+                            </div>
+                            <div class="form-group checkbox-group">
+                                {{ form.request_source_send_out(class="form-checkbox") }}
+                                {{ form.request_source_send_out.label(class="checkbox-label") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-subsection">
+                    <h4>HER2</h4>
+                    <div class="checkbox-grid">
+                        <div class="form-group checkbox-group">
+                            {{ form.in_progress_her2(class="form-checkbox") }}
+                            {{ form.in_progress_her2.label(class="checkbox-label") }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-subsection">
+                    <h4>Special Stains</h4>
+                    <div class="form-group">
+                        {{ form.upfront_special_stains.label(class="form-label") }}
+                        <div class="radio-group">
+                            {% for subfield in form.upfront_special_stains %}
+                                <div class="radio-item">
+                                    {{ subfield(class="form-radio") }}
+                                    {{ subfield.label(class="radio-label") }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Task Status</h3>
+
+                <div class="form-group">
+                    {{ form.peloris_maintenance.label(class="form-label") }}
+                    <div class="radio-group">
+                        {% for subfield in form.peloris_maintenance %}
+                            <div class="radio-item">
+                                {{ subfield(class="form-radio") }}
+                                {{ subfield.label(class="radio-label") }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" formaction="{{ url_for('page2.workflow_back') }}" formmethod="post" class="btn btn-secondary">Back</button>
+                {% if session.department == 'Checkout' %}
+                <button type="submit" class="btn btn-primary">Continue to Notes (Page 4)</button>
+                {% else %}
+                <button type="submit" class="btn btn-primary">Continue to Notes</button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const requestSourcesDiv = document.getElementById('request-sources');
+    const statusRadios = document.querySelectorAll('input[name="pathologist_requests_status"]');
+
+    function toggleRequestSources() {
+        const selectedRadio = document.querySelector('input[name="pathologist_requests_status"]:checked');
+        if (selectedRadio && selectedRadio.value === 'pending') {
+            requestSourcesDiv.style.display = 'block';
+        } else {
+            requestSourcesDiv.style.display = 'none';
+        }
+    }
+
+    statusRadios.forEach(function(radio) {
+        radio.addEventListener('change', toggleRequestSources);
+    });
+
+    // Check initial state on page load
+    toggleRequestSources();
+});
+</script>
+{% endblock %}

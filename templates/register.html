@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Lab Workflow Webapp{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-card">
+        <h2>Create Account</h2>
+        <p class="subtitle">Register with your @ypmg.com email</p>
+        
+        <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                {{ form.user_id.label(class="form-label") }}
+                {{ form.user_id(class="form-control" + (" is-invalid" if form.user_id.errors else ""), placeholder="Your display name") }}
+                {% if form.user_id.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.user_id.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="you@ypmg.com") }}
+                {% if form.email.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.email.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.passcode.label(class="form-label") }}
+                {{ form.passcode(class="form-control" + (" is-invalid" if form.passcode.errors else ""), placeholder="At least 6 characters") }}
+                {% if form.passcode.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.passcode.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.confirm_passcode.label(class="form-label") }}
+                {{ form.confirm_passcode(class="form-control" + (" is-invalid" if form.confirm_passcode.errors else ""), placeholder="Re-enter password") }}
+                {% if form.confirm_passcode.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.confirm_passcode.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-block">Register</button>
+            </div>
+        </form>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <p>Already have an account? <a href="{{ url_for('auth.login') }}">Log in here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-focus on user_id field
+    document.addEventListener('DOMContentLoaded', function() {
+        const userIdField = document.getElementById('user_id');
+        if (userIdField) {
+            userIdField.focus();
+        }
+    });
+</script>
+{% endblock %}

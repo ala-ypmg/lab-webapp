@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Coming Soon - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-card">
+        <h2>Coming Soon</h2>
+        <p class="subtitle">Page 2 of 3</p>
+
+        <div style="text-align: center; padding: 40px 20px;">
+            <p style="font-size: 18px; margin-bottom: 20px;">
+                This section is currently under development.
+            </p>
+            <p style="font-size: 16px; color: #666;">
+                Know what you want to see here? Email it to Gale at <a href="mailto:ala@ypmg.com">ala@ypmg.com</a>
+            </p>
+        </div>
+
+        <div class="form-actions">
+            <form action="{{ url_for('auth.logout') }}" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-secondary">Logout</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    :root {
+      --icon-color: #000000;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --icon-color: #FFFFFF;
+      }
+    }
+    .adaptive-fill { fill: var(--icon-color); }
+    .adaptive-stroke { stroke: var(--icon-color); }
+  </style>
+  
+  <path class="adaptive-fill" d="M48 180V432C48 449.673 62.3269 464 80 464H432C449.673 464 464 449.673 464 432V180L256 64L48 180Z" />
+  
+  <g transform="translate(156, 110)">
+    <rect x="0" y="0" width="200" height="240" rx="20" fill="white" />
+    <path d="M140 180H60V170H140V180Z" fill="black" /> <path d="M100 170V150C100 130 115 115 135 115H145" stroke="black" stroke-width="12" fill="none" /> <rect x="80" y="80" width="30" height="80" rx="5" transform="rotate(-35 80 80)" fill="black" /> <circle cx="55" cy="70" r="18" stroke="black" stroke-width="6" fill="none" />
+    <circle cx="45" cy="110" r="12" stroke="black" stroke-width="4" fill="none" />
+    <circle cx="55" cy="145" r="8" stroke="black" stroke-width="3" fill="none" />
+    <circle cx="75" cy="175" r="5" fill="black" />
+  </g>
+
+  <path class="adaptive-stroke" d="M60 200L200 320" stroke-width="24" stroke-linecap="round" />
+  <path class="adaptive-stroke" d="M452 200L312 320" stroke-width="24" stroke-linecap="round" />
+  <path class="adaptive-stroke" d="M80 440L140 380" stroke-width="18" stroke-linecap="round" />
+  <path class="adaptive-stroke" d="M432 440L372 380" stroke-width="18" stroke-linecap="round" />
+</svg>

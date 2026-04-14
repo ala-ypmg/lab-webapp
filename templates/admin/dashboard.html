@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>Admin Dashboard</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Submissions</h3>
+            <p class="stat-value">{{ stats.total_submissions }}</p>
+        </div>
+        
+        <div class="stat-card">
+            <h3>Recent (30 days)</h3>
+            <p class="stat-value">{{ stats.recent_count }}</p>
+        </div>
+        
+        <div class="stat-card">
+            <h3>Total Users</h3>
+            <p class="stat-value">{{ stats.total_users }}</p>
+        </div>
+    </div>
+    
+    <div class="admin-sections">
+        <div class="admin-section">
+            <h3>Quick Actions</h3>
+            <div class="action-buttons">
+                <a href="{{ url_for('admin.submissions') }}" class="btn btn-primary">View All Submissions</a>
+                <a href="{{ url_for('reports.summary') }}" class="btn btn-primary">View Reports</a>
+                {% if admin_level >= 2 %}
+                    <a href="{{ url_for('export.export_csv') }}" class="btn btn-primary">Export Data (CSV)</a>
+                {% endif %}
+                {% if admin_level >= 3 %}
+                    <a href="{{ url_for('admin.users') }}" class="btn btn-primary">User Management</a>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if recent_submissions %}
+        <div class="admin-section">
+            <h3>Recent Submissions</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Department</th>
+                        <th>Submitted At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in recent_submissions[:10] %}
+                    <tr>
+                        <td>{{ sub.id }}</td>
+                        <td>{{ sub.department }}</td>
+                        <td>{{ sub.submitted_at }}</td>
+                        <td>
+                            <a href="{{ url_for('admin.submission_detail', submission_id=sub.id) }}" class="btn btn-sm btn-secondary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

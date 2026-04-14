@@ -57,7 +57,7 @@ def seed_users():
     print("\nCreating admin users...")
     
     admin_assignments = [
-        ('admin', 3),        # Full admin access
+        ('ala', 3),        # Full admin access
         ('labmanager', 2), # Export and submissions access
     ]
     

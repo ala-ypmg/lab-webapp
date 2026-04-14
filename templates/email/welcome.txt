@@ -1,0 +1,9 @@
+Welcome to YPMG Lab Webapp!
+===========================
+
+Your account is now active, {{ user_id }}!
+
+Log in here: {{ login_url }}
+
+---
+Yosemite Pathology & Precision Pathology Medical Group

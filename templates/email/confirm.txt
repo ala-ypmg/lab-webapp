@@ -1,0 +1,11 @@
+YPMG Lab Webapp - Confirm Your Email
+=====================================
+
+Thank you for registering for the YPMG Lab Workflow Webapp.
+
+Confirm your account: {{ confirm_url }}
+
+This link expires in {{ expiry_hours }} hour(s).
+
+---
+Yosemite Pathology & Precision Pathology Medical Group

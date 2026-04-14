@@ -140,6 +140,17 @@ def init_vercel_database(db_path):
         )
     ''')
     
+    # Create Accessioning Submissions table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS accessioning_submissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            submission_data TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+
     # Create indexes
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_user_id ON users(user_id);')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);')
@@ -150,7 +161,9 @@ def init_vercel_database(db_path):
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_submissions_timestamp ON form_submissions(submitted_at);')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_audit_user_id ON audit_log(user_id);')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);')
-    
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_accessioning_user_id ON accessioning_submissions(user_id);')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_accessioning_submitted_at ON accessioning_submissions(submitted_at);')
+
     conn.commit()
     conn.close()
     logger.info(f"Vercel database initialized at: {db_path}")
@@ -267,6 +280,31 @@ elif env == 'vercel':
             conn.close()
             logger.info(f"Database verified at {db_path}")
 
+# Run lightweight schema migrations for SQLite development environments.
+# CREATE TABLE IF NOT EXISTS is idempotent — safe to run on every startup.
+if not USE_AZURE_SQL and env != 'vercel':
+    try:
+        _db_path = app.config.get('DATABASE_URI')
+        if _db_path and os.path.exists(_db_path):
+            _conn = sqlite3.connect(_db_path)
+            _cur = _conn.cursor()
+            _cur.execute('''
+                CREATE TABLE IF NOT EXISTS accessioning_submissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    submission_data TEXT NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+            ''')
+            _cur.execute('CREATE INDEX IF NOT EXISTS idx_accessioning_user_id ON accessioning_submissions(user_id);')
+            _cur.execute('CREATE INDEX IF NOT EXISTS idx_accessioning_submitted_at ON accessioning_submissions(submitted_at);')
+            _conn.commit()
+            _conn.close()
+            logger.info("accessioning_submissions table verified/created")
+    except Exception as _e:
+        logger.warning(f"Schema migration warning: {_e}")
+
 # Ensure instance directory exists (only for non-Vercel, non-Azure SQL environments)
 if not USE_AZURE_SQL and env != 'vercel':
     instance_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance')
@@ -331,12 +369,14 @@ from routes.ypb_daily_count import ypb_bp
 from routes.admin import admin_bp
 from routes.export import export_bp
 from routes.reports import reports_bp
+from routes.accessioning import accessioning_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(page1_bp)
 app.register_blueprint(page2_bp)
 app.register_blueprint(page3_bp)
 app.register_blueprint(ypb_bp)
+app.register_blueprint(accessioning_bp)
 app.register_blueprint(admin_bp, url_prefix='/admin')
 app.register_blueprint(export_bp, url_prefix='/export')
 app.register_blueprint(reports_bp, url_prefix='/reports')
@@ -364,7 +404,7 @@ def handle_database_error(error):
     
     # Check if this is a database connection error
     error_str = str(error).lower()
-    if 'pyodbc' in error_str or 'database' in error_str or 'connection' in error_str:
+    if 'pymssql' in error_str or 'database' in error_str or 'connection' in error_str:
         logger.error(f"Database error: {error}")
         return render_template('error.html',
                              error_code=503,
@@ -381,6 +421,12 @@ def inject_globals():
         'app_name': 'Easy End of Shift',
         'use_azure_sql': USE_AZURE_SQL
     }
+
+# Serve favicon at root path
+@app.route('/favicon.svg')
+def favicon():
+    from flask import send_from_directory
+    return send_from_directory('static', 'favicon.svg', mimetype='image/svg+xml')
 
 # Health check endpoint for Azure SQL
 @app.route('/health')

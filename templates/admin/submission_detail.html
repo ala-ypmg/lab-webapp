@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Submission #{{ submission.id }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>Submission Details - ID #{{ submission.id }}</h2>
+    
+    <div class="admin-actions">
+        <a href="{{ url_for('admin.submissions') }}" class="btn btn-secondary">Back to Submissions</a>
+    </div>
+    
+    <div class="detail-sections">
+        <div class="detail-section">
+            <h3>General Information</h3>
+            <dl class="detail-list">
+                <dt>Submission ID:</dt>
+                <dd>{{ submission.id }}</dd>
+                
+                <dt>User ID:</dt>
+                <dd>{{ submission.user_id }}</dd>
+                
+                <dt>Department:</dt>
+                <dd>{{ submission.department }}</dd>
+                
+                <dt>Login Timestamp:</dt>
+                <dd>{{ submission.login_timestamp }}</dd>
+                
+                <dt>Submitted At:</dt>
+                <dd>{{ submission.submitted_at }}</dd>
+            </dl>
+        </div>
+        
+        <div class="detail-section">
+            <h3>Workflow Data</h3>
+            <dl class="detail-list">
+                <dt>Final Block Time:</dt>
+                <dd>{{ submission.final_block_time or 'Not provided' }}</dd>
+                
+                <dt>Baked IHCs PT Link:</dt>
+                <dd>{{ 'Yes' if submission.baked_ihcs_pt_link else 'No' }}</dd>
+                
+                <dt>IHCs in PT Link:</dt>
+                <dd>{{ 'Yes' if submission.ihcs_in_pt_link else 'No' }}</dd>
+                
+                <dt>Non-Baked IHC:</dt>
+                <dd>{{ 'Yes' if submission.non_baked_ihc else 'No' }}</dd>
+                
+                <dt>IHCs in Buffer Wash:</dt>
+                <dd>{{ 'Yes' if submission.ihcs_in_buffer_wash else 'No' }}</dd>
+                
+                <dt>Pathologist Requests Status:</dt>
+                <dd>{{ submission.pathologist_requests_status or 'Not provided' }}</dd>
+                
+                <dt>Request Source - Email:</dt>
+                <dd>{{ 'Yes' if submission.request_source_email else 'No' }}</dd>
+                
+                <dt>Request Source - Orchard:</dt>
+                <dd>{{ 'Yes' if submission.request_source_orchard else 'No' }}</dd>
+                
+                <dt>Request Source - Send Out:</dt>
+                <dd>{{ 'Yes' if submission.request_source_send_out else 'No' }}</dd>
+                
+                <dt>In Progress HER2:</dt>
+                <dd>{{ 'Yes' if submission.in_progress_her2 else 'No' }}</dd>
+                
+                <dt>Upfront Special Stains:</dt>
+                <dd>{{ submission.upfront_special_stains or 'Not provided' }}</dd>
+                
+                <dt>Peloris Maintenance:</dt>
+                <dd>{{ submission.peloris_maintenance or 'Not provided' }}</dd>
+            </dl>
+        </div>
+        
+        <div class="detail-section">
+            <h3>Notes</h3>
+            <div class="notes-box">
+                {{ submission.notes or 'No notes provided' }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

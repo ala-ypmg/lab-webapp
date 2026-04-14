@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>User Management</h2>
+    
+    <div class="admin-actions">
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+    
+    <div class="form-section">
+        <h3>Create New User</h3>
+        <form method="POST" action="{{ url_for('admin.create_user') }}" class="inline-form">
+            <input type="text" name="user_id" placeholder="User ID" required class="form-control">
+            <input type="text" name="passcode" placeholder="4-digit passcode" maxlength="4" pattern="[0-9]{4}" required class="form-control">
+            <button type="submit" class="btn btn-primary">Create User</button>
+        </form>
+    </div>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>User ID</th>
+                <th>Created At</th>
+                <th>Last Login</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.user_id }}</td>
+                <td>{{ user.created_at }}</td>
+                <td>{{ user.last_login or 'Never' }}</td>
+                <td>
+                    {% if user.is_active %}
+                        <span class="badge badge-success">Active</span>
+                    {% else %}
+                        <span class="badge badge-danger">Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.is_active %}
+                        <form method="POST" action="{{ url_for('admin.deactivate_user', user_id=user.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Deactivate this user?')">Deactivate</button>
+                        </form>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('admin.activate_user', user_id=user.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

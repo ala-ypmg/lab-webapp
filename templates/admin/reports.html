@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>Reports & Analytics</h2>
+    
+    <div class="admin-actions">
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+    
+    <div class="reports-grid">
+        <div class="report-card">
+            <h3>Summary Report</h3>
+            <p>Overall statistics and department breakdown</p>
+            <a href="{{ url_for('reports.summary') }}" class="btn btn-primary">View Report</a>
+        </div>
+        
+        <div class="report-card">
+            <h3>Department Report</h3>
+            <p>Detailed breakdown by department</p>
+            <a href="{{ url_for('reports.department') }}" class="btn btn-primary">View Report</a>
+        </div>
+        
+        <div class="report-card">
+            <h3>Trends Analysis</h3>
+            <p>Time-based submission trends</p>
+            <a href="{{ url_for('reports.trends') }}" class="btn btn-primary">View Report</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

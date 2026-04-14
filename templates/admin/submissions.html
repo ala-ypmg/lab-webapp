@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}All Submissions - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h2>All Submissions</h2>
+    
+    <div class="admin-actions">
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="{{ url_for('export.export_csv') }}" class="btn btn-primary">Export CSV</a>
+    </div>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>User ID</th>
+                <th>Department</th>
+                <th>Login Time</th>
+                <th>Submitted At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in submissions %}
+            <tr>
+                <td>{{ sub.id }}</td>
+                <td>{{ sub.user_id }}</td>
+                <td>{{ sub.department }}</td>
+                <td>{{ sub.login_timestamp }}</td>
+                <td>{{ sub.submitted_at }}</td>
+                <td>
+                    <a href="{{ url_for('admin.submission_detail', submission_id=sub.id) }}" class="btn btn-sm btn-primary">View Details</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="{{ url_for('admin.submissions', page=page-1) }}" class="btn btn-sm btn-secondary">Previous</a>
+        {% endif %}
+        <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
+        {% if page < total_pages %}
+            <a href="{{ url_for('admin.submissions', page=page+1) }}" class="btn btn-sm btn-secondary">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

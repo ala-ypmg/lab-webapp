@@ -75,7 +75,7 @@ The YPMG Lab Workflow Webapp is a sequential multi-page application designed for
 | Component | Technology |
 |-----------|------------|
 | **Backend** | Flask 3.x, Python 3.8+ |
-| **Database** | SQLite 3 (PostgreSQL recommended for production) |
+| **Database** | SQLite 3 (dev/local), Azure SQL via pymssql (production) |
 | **Authentication** | Flask-Login, bcrypt password hashing |
 | **Sessions** | Flask-Session (server-side) |
 | **Forms** | WTForms with CSRF protection |
@@ -179,13 +179,12 @@ lab-webapp/
 │   ├── lab_data.db                 # SQLite database
 │   └── flask_session/              # Server-side sessions
 │
-├── documentations/                 # Additional documentation
-│   ├── GETTING_STARTED.md
-│   ├── DEPLOYMENT_GUIDE.md
-│   └── VERCEL_FIX_GUIDE.md
+├── docs/                           # Documentation
+│   └── azure_sql_setup.md          # Azure SQL setup and migration guide
 │
-├── .env                            # Environment variables (DO NOT COMMIT)
-├── .env.example                    # Environment template
+├── plans/                          # Implementation plans
+│   └── qc_logging_implementation_plan.md  # QC Logging feature spec
+│
 ├── .gitignore                      # Git ignore patterns
 └── LICENSE                         # License file
 ```
@@ -321,8 +320,6 @@ CONFIRMATION_TOKEN_EXPIRY=3600  # 1 hour in seconds
 | File | Purpose |
 |------|---------|
 | `config.py` | Flask configuration classes (Dev/Prod/Vercel) |
-| `.env` | Environment-specific secrets (never commit) |
-| `.env.example` | Template for environment variables |
 | `vercel.json` | Vercel deployment settings |
 
 ---
@@ -580,13 +577,37 @@ python migrations/add_ypb_daily_count.py
 sqlite3 instance/lab_data.db
 ```
 
+### Azure SQL (Production)
+
+The application supports Azure SQL as a production database backend via `pymssql`. The server uses two databases for separation of concerns:
+
+| Database | Purpose | Tables |
+|----------|---------|--------|
+| `users` | User authentication & admin data | `users`, `admin_users` |
+| `ezeos` | Sessions & submissions | `user_sessions`, `form_submissions`, `audit_log` |
+
+**Environment Variables:**
+```bash
+AZURE_SQL_SERVER=ezeos.database.windows.net
+AZURE_SQL_USERS_DATABASE=users
+AZURE_SQL_EZEOS_DATABASE=ezeos
+AZURE_SQL_USERNAME=your-username
+AZURE_SQL_PASSWORD=your-password
+```
+
+**Setup Steps:**
+1. Enable public network access in Azure Portal and add firewall rules
+2. Run schema migration: `migrations/azure_sql_schema.sql`
+3. (Optional) Migrate existing SQLite data: `python migrations/migrate_data_to_azure.py`
+
+See [docs/azure_sql_setup.md](docs/azure_sql_setup.md) for the full setup and troubleshooting guide.
+
 ### Backup Strategy
 
 For production:
 - Regular automated backups
 - Off-site backup storage
 - Test restore procedures
-- Consider migrating to PostgreSQL
 
 ---
 
@@ -731,6 +752,8 @@ npm run build   # Production build
 
 ## Future Enhancements
 
+- [ ] QC Logging page between Workflow and Notes (see [plans/qc_logging_implementation_plan.md](plans/qc_logging_implementation_plan.md))
+- [ ] QC Dashboard: admin view of quality issues by category and time
 - [ ] Excel export with formatting
 - [ ] PDF export for individual submissions
 - [ ] Advanced chart visualizations
@@ -739,7 +762,6 @@ npm run build   # Production build
 - [ ] User password reset functionality
 - [ ] Bulk data import
 - [ ] Advanced filtering and search
-- [ ] PostgreSQL migration scripts
 - [ ] Comprehensive test suite
 
 ---
@@ -755,8 +777,7 @@ This project is for internal YPMG lab use. See `LICENSE` file for details.
 For issues or questions:
 1. Check this README and troubleshooting section
 2. Review application logs
-3. Contact your system administrator
-4. Report issues at the project repository
+3. Yell at Gale in Vietnamese. Southern dialect is preferable
 
 ---
 

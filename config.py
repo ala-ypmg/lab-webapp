@@ -14,7 +14,6 @@ class Config:
     AZURE_SQL_SERVER = os.environ.get('AZURE_SQL_SERVER', 'ezeos.database.windows.net')
     AZURE_SQL_USERNAME = os.environ.get('AZURE_SQL_USERNAME', 'ala')
     AZURE_SQL_PASSWORD = os.environ.get('AZURE_SQL_PASSWORD', '')
-    AZURE_SQL_DRIVER = os.environ.get('AZURE_SQL_DRIVER', 'ODBC Driver 17 for SQL Server')
     AZURE_SQL_DATABASE_USERS = os.environ.get('AZURE_SQL_DATABASE_USERS', 'users')
     AZURE_SQL_DATABASE_EZEOS = os.environ.get('AZURE_SQL_DATABASE_EZEOS', 'ezeos')
     
@@ -58,31 +57,29 @@ class Config:
     CONFIRMATION_TOKEN_EXPIRY = int(os.environ.get('CONFIRMATION_TOKEN_EXPIRY', 3600))
     
     @classmethod
-    def get_azure_connection_string(cls, database='users'):
+    def get_azure_connection_params(cls, database='users'):
         """
-        Build Azure SQL connection string
-        
+        Build pymssql connection keyword arguments for Azure SQL.
+
         Args:
             database: Which database to connect to ('users' or 'ezeos')
-            
+
         Returns:
-            pyodbc connection string
+            dict of keyword arguments for pymssql.connect()
         """
         if database == 'users':
             db_name = cls.AZURE_SQL_DATABASE_USERS
         else:
             db_name = cls.AZURE_SQL_DATABASE_EZEOS
-        
-        return (
-            f"DRIVER={{{cls.AZURE_SQL_DRIVER}}};"
-            f"SERVER={cls.AZURE_SQL_SERVER};"
-            f"DATABASE={db_name};"
-            f"UID={cls.AZURE_SQL_USERNAME};"
-            f"PWD={cls.AZURE_SQL_PASSWORD};"
-            "Encrypt=yes;"
-            "TrustServerCertificate=no;"
-            "Connection Timeout=30;"
-        )
+
+        return {
+            'server': cls.AZURE_SQL_SERVER,
+            'user': cls.AZURE_SQL_USERNAME,
+            'password': cls.AZURE_SQL_PASSWORD,
+            'database': db_name,
+            'tds_version': '7.4',
+            'login_timeout': 30,
+        }
 
 class DevelopmentConfig(Config):
     """Development configuration"""

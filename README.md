@@ -105,7 +105,8 @@ lab-webapp/
 │   ├── __init__.py
 │   ├── user.py                     # User model with email confirmation
 │   ├── session.py                  # Workflow session model
-│   └── submission.py               # Form submission model
+│   ├── submission.py               # Form submission model
+│   └── case_prefix.py              # Case number prefix model (accessioning)
 │
 ├── routes/                         # Application routes (blueprints)
 │   ├── __init__.py
@@ -116,7 +117,8 @@ lab-webapp/
 │   ├── admin.py                    # Admin dashboard and user management
 │   ├── export.py                   # Data export functionality
 │   ├── reports.py                  # Reporting system
-│   └── ypb_daily_count.py          # YPB Daily Count workflow
+│   ├── ypb_daily_count.py          # YPB Daily Count workflow
+│   └── accessioning.py             # Accessioning workflow (Checkout dept)
 │
 ├── forms/                          # WTForms form definitions
 │   ├── __init__.py
@@ -133,7 +135,9 @@ lab-webapp/
 ├── utils/                          # Utility modules
 │   ├── __init__.py
 │   ├── audit.py                    # Audit logging
+│   ├── case_number.py              # Case number generation (accessioning)
 │   ├── config_validator.py         # Configuration validation
+│   ├── db_connection.py            # Azure SQL / SQLite connection handling
 │   ├── logging_config.py           # Logging setup
 │   └── security_middleware.py      # Rate limiting, security headers
 │
@@ -146,6 +150,8 @@ lab-webapp/
 │   ├── notes.html                  # Page 3 - Notes
 │   ├── confirmation.html           # Submission confirmation
 │   ├── ypb_daily_count.html        # YPB Daily Count page
+│   ├── accessioning_workflow.html  # Accessioning workflow page
+│   ├── coming_soon.html            # Placeholder page
 │   ├── error.html                  # Error page
 │   ├── admin/                      # Admin templates
 │   │   ├── dashboard.html
@@ -185,6 +191,7 @@ lab-webapp/
 ├── plans/                          # Implementation plans
 │   └── qc_logging_implementation_plan.md  # QC Logging feature spec
 │
+├── favicon.svg                     # App favicon (adaptive color)
 ├── .gitignore                      # Git ignore patterns
 └── LICENSE                         # License file
 ```
@@ -694,6 +701,15 @@ rm -rf instance/flask_session/*
 - Verify all files are committed to git
 - Test imports locally: `python -c "from app import app"`
 
+#### Azure SQL: 503 errors / "Cannot open server" (error 40615)
+The client IP is blocked by the Azure SQL firewall. `utils/db_connection.py` fast-fails (10s login timeout) and caches the failure for 30s to prevent request pile-up, but the underlying fix is to add the firewall rule:
+- Azure Portal → SQL servers → `ezeos` → Security → Networking
+- Add the server's outbound IP (or enable "Allow Azure services")
+
+#### Azure SQL: Intermittent timeouts on first request (error 40613)
+Azure SQL Serverless auto-pauses idle databases and cold-starts take 30–60s. The connection handler retries up to 3× with a 20s delay (~60s total). If cold starts are consistently user-facing, disable auto-pause:
+- Azure Portal → SQL databases → Compute + storage → Auto-pause delay → **No pause**
+
 ### Reset Everything
 
 ```bash
@@ -777,7 +793,7 @@ This project is for internal YPMG lab use. See `LICENSE` file for details.
 For issues or questions:
 1. Check this README and troubleshooting section
 2. Review application logs
-3. Yell at Gale in Vietnamese. Southern dialect is preferable
+3. Yell at Gale in Vietnamese. Southern dialect is most effective
 
 ---
 

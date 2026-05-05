@@ -12,16 +12,16 @@ export const TOOLTIPS = {
   blocks: 'Total number of tissue blocks processed in this run.',
   
   /** Bone marrow case number tooltip */
-  boneMarrowCase: 'Bone marrow case number.',
+  boneMarrowCase: 'Bone marrow case number (if applicable).',
   
   /** Bone marrow blocks tooltip */
   boneMarrowBlocks: 'Number of blocks from bone marrow cases.',
   
   /** Cell buttons tooltip */
-  cellButtons: 'Number of cell buttons processed.',
+  cellButtons: 'Number of cell button specimens processed.',
   
   /** Autopsy blocks tooltip */
-  autopsyBlocks: 'Blocks from autopsy cases.',
+  autopsyBlocks: 'Blocks from autopsy cases (typically weekly).',
   
   /** Checkout time tooltip */
   checkoutTime: 'Time when this run was completed.',

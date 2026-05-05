@@ -1,41 +1,24 @@
-/**
- * MUI Theme Configuration with YPMG Brand Colors
- */
-
 import { createTheme, type ThemeOptions } from '@mui/material/styles';
 
-/**
- * YPMG Brand Color Palette
- */
 export const colors = {
-  /** Navy Blue - primary actions, headers */
   primary: '#17406a',
-  /** Hover states */
-  primaryLight: '#3d6a99',
-  /** Emphasis, grand total */
-  primaryDark: '#0f2d4a',
-  /** Blue Grey 600 - secondary text, icons */
-  secondary: '#546e7a',
-  /** Page background */
-  background: '#f5f7f8',
-  /** Cards */
+  primaryLight: '#1e5183',
+  primaryDark: '#102d4a',
+  accent: '#e8912c',
+  accentLight: '#f0a94d',
+  secondary: '#5a6a7a',
+  background: '#f5f7fa',
   surface: '#ffffff',
-  /** Delete actions */
-  error: '#c62828',
-  /** Completed states, checkmarks */
+  error: '#d32f2f',
   success: '#2e7d32',
-  /** Dividers, input borders */
-  border: '#e0e0e0',
-  /** Text colors */
+  warning: '#ed6c02',
+  border: '#dde3ea',
   text: {
-    primary: '#212121',
-    secondary: '#757575',
+    primary: '#1a2332',
+    secondary: '#5a6a7a',
   },
 } as const;
 
-/**
- * Theme options configuration
- */
 const themeOptions: ThemeOptions = {
   palette: {
     primary: {
@@ -44,7 +27,7 @@ const themeOptions: ThemeOptions = {
       dark: colors.primaryDark,
     },
     secondary: {
-      main: colors.secondary,
+      main: colors.accent,
     },
     error: {
       main: colors.error,
@@ -52,35 +35,53 @@ const themeOptions: ThemeOptions = {
     success: {
       main: colors.success,
     },
+    warning: {
+      main: colors.warning,
+    },
     background: {
       default: colors.background,
       paper: colors.surface,
     },
     divider: colors.border,
+    text: {
+      primary: colors.text.primary,
+      secondary: colors.text.secondary,
+    },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    // Prevent iOS zoom on input focus
-    body1: {
-      fontSize: '16px',
-    },
-    body2: {
-      fontSize: '14px',
-    },
+    fontFamily: "'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    h5: { fontWeight: 600 },
+    h6: { fontWeight: 600 },
+    subtitle1: { fontWeight: 500 },
+    body1: { fontSize: '16px' },
+    body2: { fontSize: '14px' },
+  },
+  shape: {
+    borderRadius: 8,
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
           textTransform: 'none',
+          fontWeight: 500,
           borderRadius: 8,
-          minHeight: 48, // Touch target minimum
+          minHeight: 48,
+        },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 500,
         },
       },
     },
     MuiChip: {
       styleOverrides: {
         root: {
+          fontWeight: 500,
           minHeight: 36,
         },
       },
@@ -89,7 +90,7 @@ const themeOptions: ThemeOptions = {
       styleOverrides: {
         root: {
           '& .MuiInputBase-input': {
-            fontSize: '16px', // Prevent iOS zoom
+            fontSize: '16px',
           },
         },
       },
@@ -97,7 +98,7 @@ const themeOptions: ThemeOptions = {
     MuiIconButton: {
       styleOverrides: {
         root: {
-          minWidth: 48, // Touch target minimum
+          minWidth: 48,
           minHeight: 48,
         },
       },
@@ -133,14 +134,8 @@ const themeOptions: ThemeOptions = {
       },
     },
   },
-  shape: {
-    borderRadius: 8,
-  },
 };
 
-/**
- * MUI Theme with YPMG brand customizations
- */
 export const theme = createTheme(themeOptions);
 
 export default theme;

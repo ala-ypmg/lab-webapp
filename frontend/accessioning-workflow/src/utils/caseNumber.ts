@@ -89,3 +89,9 @@ export function validateCaseNumber(raw: string): ValidationResult {
 
   return { valid: true, normalized };
 }
+
+const CASE_NUMBER_SCAN = /\d{2}[A-Za-z]{2,3}-\d{5}/i;
+
+export function containsCaseNumber(text: string): boolean {
+  return CASE_NUMBER_SCAN.test(text);
+}

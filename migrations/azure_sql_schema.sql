@@ -10,7 +10,7 @@
 --
 -- DATABASE ARCHITECTURE:
 --   - Database: "users"  → User authentication and admin tables
---   - Database: "ezeos"  → Sessions, form submissions, and audit logs
+--   - Database: "main"   → Sessions, form submissions, and audit logs
 --
 -- IMPORTANT: Foreign key references between databases are NOT supported in 
 -- Azure SQL. Cross-database referential integrity is enforced at the 
@@ -18,7 +18,7 @@
 --
 -- EXECUTION ORDER:
 --   1. Connect to "users" database and run Section 1
---   2. Connect to "ezeos" database and run Section 2
+--   2. Connect to "main" database and run Section 2
 --
 -- Generated: 2026-01-27
 -- ==============================================================================
@@ -144,10 +144,10 @@ GO
 
 
 -- ==============================================================================
--- SECTION 2: "ezeos" DATABASE SCHEMA
+-- SECTION 2: "main" DATABASE SCHEMA
 -- ==============================================================================
--- Connect to: ezeos.database.windows.net / ezeos
--- Run this section while connected to the "ezeos" database
+-- Connect to: ezeos.database.windows.net / main
+-- Run this section while connected to the "main" database
 -- ==============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -191,18 +191,18 @@ BEGIN
         -- Page 2 fields: Final Block Time
         final_block_time TIME NULL,
         
-        -- Page 2 fields: IHC checkboxes
-        baked_ihcs_pt_link BIT NULL,
-        ihcs_in_pt_link BIT NULL,
-        non_baked_ihc BIT NULL,
-        ihcs_in_buffer_wash BIT NULL,
-        
+        -- Page 2 fields: IHC status (done/pending/na)
+        baked_ihcs_pt_link NVARCHAR(10) NULL,
+        ihcs_in_pt_link NVARCHAR(10) NULL,
+        non_baked_ihc NVARCHAR(10) NULL,
+        ihcs_in_buffer_wash NVARCHAR(10) NULL,
+
         -- Page 3 fields: Pathologist requests
         pathologist_requests_status NVARCHAR(20) NULL,
         request_source_email BIT NULL,
         request_source_orchard BIT NULL,
         request_source_send_out BIT NULL,
-        in_progress_her2 BIT NULL,
+        in_progress_her2 NVARCHAR(10) NULL,
         
         -- Page 3 fields: Other settings
         upfront_special_stains NVARCHAR(20) NULL,
@@ -270,17 +270,17 @@ BEGIN
         
         -- Page 2 data
         final_block_time TIME NULL,
-        baked_ihcs_pt_link BIT NULL,
-        ihcs_in_pt_link BIT NULL,
-        non_baked_ihc BIT NULL,
-        ihcs_in_buffer_wash BIT NULL,
-        
+        baked_ihcs_pt_link NVARCHAR(10) NULL,
+        ihcs_in_pt_link NVARCHAR(10) NULL,
+        non_baked_ihc NVARCHAR(10) NULL,
+        ihcs_in_buffer_wash NVARCHAR(10) NULL,
+
         -- Page 3 data
         pathologist_requests_status NVARCHAR(20) NULL,
         request_source_email BIT NULL,
         request_source_orchard BIT NULL,
         request_source_send_out BIT NULL,
-        in_progress_her2 BIT NULL,
+        in_progress_her2 NVARCHAR(10) NULL,
         upfront_special_stains NVARCHAR(20) NULL,
         peloris_maintenance NVARCHAR(20) NULL,
         notes NVARCHAR(MAX) NULL,
@@ -379,6 +379,44 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_audit_timestamp' AND 
 BEGIN
     CREATE INDEX idx_audit_timestamp ON audit_log(timestamp);
     PRINT 'Index [idx_audit_timestamp] created.';
+END
+GO
+
+
+-- -----------------------------------------------------------------------------
+-- Table: accessioning_submissions
+-- Purpose: Stores completed accessioning workflow submissions (JSON payload)
+-- Note: user_id references users.id in the "users" database
+--       (Cross-database FK not supported - enforced at application level)
+-- -----------------------------------------------------------------------------
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'accessioning_submissions')
+BEGIN
+    CREATE TABLE accessioning_submissions (
+        id INT PRIMARY KEY IDENTITY(1,1),
+        user_id INT NOT NULL,
+        submitted_at DATETIME2 DEFAULT GETDATE(),
+        submission_data NVARCHAR(MAX) NOT NULL
+    );
+    PRINT 'Table [accessioning_submissions] created successfully.';
+END
+ELSE
+BEGIN
+    PRINT 'Table [accessioning_submissions] already exists. Skipping creation.';
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_accessioning_user_id' AND object_id = OBJECT_ID('accessioning_submissions'))
+BEGIN
+    CREATE INDEX idx_accessioning_user_id ON accessioning_submissions(user_id);
+    PRINT 'Index [idx_accessioning_user_id] created.';
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_accessioning_submitted_at' AND object_id = OBJECT_ID('accessioning_submissions'))
+BEGIN
+    CREATE INDEX idx_accessioning_submitted_at ON accessioning_submissions(submitted_at);
+    PRINT 'Index [idx_accessioning_submitted_at] created.';
 END
 GO
 
@@ -496,7 +534,7 @@ GO
 -- Verify tables in "users" database:
 -- SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';
 
--- Verify tables in "ezeos" database:
+-- Verify tables in "main" database:
 -- SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';
 
 -- Check foreign keys:

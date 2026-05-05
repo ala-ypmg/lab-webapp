@@ -4,14 +4,14 @@ Data Migration Script: SQLite to Azure SQL
 ==========================================
 
 This script migrates data from the local SQLite database (instance/lab_data.db)
-to Azure SQL databases (users and ezeos).
+to Azure SQL databases (users and main).
 
 Migration Order:
     1. users (users database)
     2. admin_users (users database)
-    3. user_sessions (ezeos database)
-    4. form_submissions (ezeos database)
-    5. audit_log (ezeos database)
+    3. user_sessions (main database)
+    4. form_submissions (main database)
+    5. audit_log (main database)
 
 Features:
     - Preserves original IDs using SET IDENTITY_INSERT ON/OFF
@@ -52,7 +52,7 @@ AZURE_SQL_PASSWORD = os.environ.get("AZURE_SQL_PASSWORD", "")
 
 # Database names
 USERS_DATABASE = "users"
-EZEOS_DATABASE = "ezeos"
+MAIN_DATABASE = "main"
 
 # Batch size for inserts
 BATCH_SIZE = 100
@@ -78,8 +78,8 @@ USERS_DB_TABLES = {
     }
 }
 
-# Tables in 'ezeos' database
-EZEOS_DB_TABLES = {
+# Tables in 'main' database
+MAIN_DB_TABLES = {
     "user_sessions": {
         "columns": [
             "id", "session_id", "user_id", "current_page", "max_page_reached",
@@ -263,7 +263,7 @@ def get_azure_connection(database: str, timeout: int = 60) -> pymssql.Connection
     Create connection to Azure SQL database.
 
     Args:
-        database: Database name ('users' or 'ezeos')
+        database: Database name ('users' or 'main')
         timeout: Connection timeout in seconds
 
     Returns:
@@ -605,18 +605,18 @@ def run_migration():
         stats.add_error(error_msg)
         print(f"\n  ❌ ERROR: {error_msg}")
     
-    # Migrate to 'ezeos' database
+    # Migrate to 'main' database
     print("\n" + "-" * 50)
-    print("Step 3: Migrate to 'ezeos' database")
+    print("Step 3: Migrate to 'main' database")
     print("-" * 50)
-    
+
     try:
-        ezeos_conn = get_azure_connection(EZEOS_DATABASE)
-        migrate_database_tables(sqlite_conn, ezeos_conn, EZEOS_DB_TABLES, EZEOS_DATABASE, stats)
-        ezeos_conn.close()
-        print(f"\n  ✓ Completed migration to '{EZEOS_DATABASE}' database")
+        main_conn = get_azure_connection(MAIN_DATABASE)
+        migrate_database_tables(sqlite_conn, main_conn, MAIN_DB_TABLES, MAIN_DATABASE, stats)
+        main_conn.close()
+        print(f"\n  ✓ Completed migration to '{MAIN_DATABASE}' database")
     except pymssql.Error as e:
-        error_msg = f"Failed to connect to '{EZEOS_DATABASE}' database: {e}"
+        error_msg = f"Failed to connect to '{MAIN_DATABASE}' database: {e}"
         stats.add_error(error_msg)
         print(f"\n  ❌ ERROR: {error_msg}")
     

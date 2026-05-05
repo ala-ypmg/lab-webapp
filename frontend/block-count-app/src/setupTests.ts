@@ -35,7 +35,7 @@ Element.prototype.scrollIntoView = vi.fn();
 // throws "TypeError: Failed to parse URL from /path". Providing a mock
 // avoids this and lets save-related tests verify UI behaviour.
 beforeEach(() => {
-  global.fetch = vi.fn().mockResolvedValue({
+  globalThis.fetch = vi.fn().mockResolvedValue({
     ok: true,
     json: async () => ({ success: true }),
   } as Response);

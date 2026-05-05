@@ -5,7 +5,7 @@
  * handles cross-page validation, and submits to Flask.
  */
 import { useState, useCallback } from 'react';
-import { Box, Snackbar } from '@mui/material';
+import { Alert, Box, Snackbar } from '@mui/material';
 import type {
   AppState,
   SectionKey,
@@ -14,11 +14,13 @@ import type {
   HeldCaseRow,
   AccessionedValue,
 } from '../types/index.ts';
-import { validateCaseNumber } from '../utils/caseNumber.ts';
+import { validateCaseNumber, containsCaseNumber } from '../utils/caseNumber.ts';
+import { SubmitKeyContext } from '../contexts/SubmitKeyContext.ts';
 import Page1 from './Page1.tsx';
 import Page2 from './Page2.tsx';
 import Page3 from './Page3.tsx';
 import BottomNavBar from './BottomNavBar.tsx';
+import DownloadBackupDialog from './DownloadBackupDialog.tsx';
 import SuccessScreen from './SuccessScreen.tsx';
 import TopNavBar from './TopNavBar.tsx';
 
@@ -125,13 +127,20 @@ export default function AccessioningWorkflow() {
   const [state, setState] = useState<AppState>(makeInitialState());
   const [currentPage, setCurrentPage] = useState<1 | 2 | 3>(1);
   const [sectionErrors, setSectionErrors] = useState<SectionErrors>({});
+  const [submitKey, setSubmitKey] = useState(0);
   const [page3AccessionedError, setPage3AccessionedError] = useState('');
+  const [page3NotesError, setPage3NotesError] = useState('');
   const [page1ValidationError, setPage1ValidationError] = useState(false);
   const [page2ErrorMsg, setPage2ErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  const [submitError, setSubmitError] = useState('');
   const [snackbar, setSnackbar] = useState('');
+  const [backupDialog, setBackupDialog] = useState<{ open: boolean; message: string }>({
+    open: false,
+    message: '',
+  });
 
   // ---------------------------------------------------------------------------
   // State updaters
@@ -164,29 +173,6 @@ export default function AccessioningWorkflow() {
   );
 
   // ---------------------------------------------------------------------------
-  // Navigation (T02)
-  // ---------------------------------------------------------------------------
-
-  const handleNavigate = useCallback(
-    (target: 1 | 2 | 3) => {
-      // Going forward from page 1 — enforce at least one type selected
-      if (currentPage === 1 && target > 1 && state.selected_types.size === 0) {
-        setPage1ValidationError(true);
-        return;
-      }
-
-      // Going to page 3 (submit) — run full validation
-      if (target === 3 && currentPage === 3) {
-        handleSubmit();
-        return;
-      }
-
-      setCurrentPage(target);
-    },
-    [currentPage, state.selected_types]
-  );
-
-  // ---------------------------------------------------------------------------
   // Submit (T15)
   // ---------------------------------------------------------------------------
 
@@ -200,10 +186,12 @@ export default function AccessioningWorkflow() {
     const formErrors = validateFormData(selected_types, form_data);
     const p2Error = Object.keys(formErrors).length > 0;
 
-    // Page 3 check
+    // Page 3 checks
     const p3AccessionError = accessioned === null;
+    const p3NotesError = containsCaseNumber(state.notes);
 
-    if (p1Error || p2Error || p3AccessionError) {
+    if (p1Error || p2Error || p3AccessionError || p3NotesError) {
+      setSubmitKey((prev) => prev + 1);
       setSectionErrors(formErrors);
 
       // Build page 2 error message
@@ -220,13 +208,18 @@ export default function AccessioningWorkflow() {
         setPage3AccessionedError('Please answer the accessioning confirmation before submitting.');
       }
 
-      const targetPage = lowestErrorPage(p1Error, p2Error, p3AccessionError);
+      if (p3NotesError) {
+        setPage3NotesError('Notes may not contain case numbers. Remove any identifiers like "25RR-15616".');
+      }
+
+      const targetPage = lowestErrorPage(p1Error, p2Error, p3AccessionError || p3NotesError);
       setCurrentPage(targetPage);
       return;
     }
 
     // Clean — submit
     setIsSubmitting(true);
+    setSubmitError('');
     try {
       const payload = {
         selected_types: [...selected_types],
@@ -252,18 +245,55 @@ export default function AccessioningWorkflow() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setSnackbar((err as { error?: string }).error ?? 'Submission failed. Please try again.');
+        const body = err as { error?: string; error_type?: string };
+        if (res.status === 503 || body.error_type === 'db_unavailable') {
+          setBackupDialog({
+            open: true,
+            message: body.error ?? 'The database is currently unavailable.',
+          });
+        } else {
+          setSubmitError(body.error ?? 'Submission failed. Please try again.');
+        }
         return;
       }
 
       setSubmittedAt(new Date());
       setSubmitted(true);
     } catch {
-      setSnackbar('Network error. Please check your connection and try again.');
+      setBackupDialog({
+        open: true,
+        message:
+          'A network error occurred and your report could not be submitted. ' +
+          'Please download a backup of your session data.',
+      });
     } finally {
       setIsSubmitting(false);
     }
   }, [state]);
+
+  // ---------------------------------------------------------------------------
+  // Navigation (T02)
+  // ---------------------------------------------------------------------------
+
+  const handleNavigate = useCallback(
+    (target: 1 | 2 | 3) => {
+      // Going forward from page 1 — enforce at least one type selected
+      if (currentPage === 1 && target > 1 && state.selected_types.size === 0) {
+        setPage1ValidationError(true);
+        setSubmitKey((prev) => prev + 1);
+        return;
+      }
+
+      // Going to page 3 (submit) — run full validation
+      if (target === 3 && currentPage === 3) {
+        handleSubmit();
+        return;
+      }
+
+      setCurrentPage(target);
+    },
+    [currentPage, state.selected_types, handleSubmit]
+  );
 
   // ---------------------------------------------------------------------------
   // Reset
@@ -274,10 +304,13 @@ export default function AccessioningWorkflow() {
     setCurrentPage(1);
     setSectionErrors({});
     setPage3AccessionedError('');
+    setPage3NotesError('');
     setPage1ValidationError(false);
     setPage2ErrorMsg('');
     setSubmitted(false);
     setSubmittedAt(null);
+    setSubmitError('');
+    setBackupDialog({ open: false, message: '' });
   };
 
   // ---------------------------------------------------------------------------
@@ -301,6 +334,7 @@ export default function AccessioningWorkflow() {
   const canProceedPage1 = state.selected_types.size > 0;
 
   return (
+    <SubmitKeyContext.Provider value={submitKey}>
     <Box sx={{ pb: '80px' /* room for fixed bottom nav bar */ }}>
       <TopNavBar onClearSession={handleReset} />
       {currentPage === 1 && (
@@ -322,7 +356,11 @@ export default function AccessioningWorkflow() {
       {currentPage === 3 && (
         <Page3
           notes={state.notes}
-          onNotesChange={(notes) => setState((prev) => ({ ...prev, notes }))}
+          onNotesChange={(notes) => {
+            setState((prev) => ({ ...prev, notes }));
+            setPage3NotesError('');
+          }}
+          notesError={page3NotesError}
           accessioned={state.accessioned}
           onAccessionedChange={(value: AccessionedValue) => {
             setState((prev) => ({ ...prev, accessioned: value }));
@@ -344,13 +382,42 @@ export default function AccessioningWorkflow() {
         isSubmitting={isSubmitting}
       />
 
+      {/* Non-critical transient notices (kept for future use) */}
       <Snackbar
         open={!!snackbar}
         autoHideDuration={6000}
         onClose={() => setSnackbar('')}
-        message={snackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="info" onClose={() => setSnackbar('')} sx={{ width: '100%' }}>
+          {snackbar}
+        </Alert>
+      </Snackbar>
+
+      {/* Submission error — stays visible until dismissed so users don't miss it */}
+      <Snackbar
+        open={!!submitError}
+        onClose={() => setSubmitError('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ mb: 8 /* clear the bottom nav bar */ }}
+      >
+        <Alert
+          severity="error"
+          onClose={() => setSubmitError('')}
+          sx={{ width: '100%' }}
+        >
+          {submitError}
+        </Alert>
+      </Snackbar>
+
+      {/* DB unavailable / network failure — prompts user to download a backup */}
+      <DownloadBackupDialog
+        open={backupDialog.open}
+        onClose={() => setBackupDialog({ open: false, message: '' })}
+        errorMessage={backupDialog.message}
+        state={state}
       />
     </Box>
+    </SubmitKeyContext.Provider>
   );
 }

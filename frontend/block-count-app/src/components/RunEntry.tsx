@@ -89,7 +89,7 @@ const RunEntry: React.FC<RunEntryProps> = ({
           minHeight: 64,
           transition: 'background-color 0.2s ease-in-out',
           '&:hover': {
-            backgroundColor: entry.collapsed ? '#eef1f2' : colors.primaryLight,
+            backgroundColor: entry.collapsed ? colors.border : colors.primaryLight,
           },
         }}
         role="button"

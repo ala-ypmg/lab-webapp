@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useState } from 'react';
 
 interface TopNavBarProps {
@@ -38,13 +39,28 @@ async function postLogout() {
   window.location.href = '/login';
 }
 
+async function postChangeDepartment() {
+  await fetch('/change-department', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCSRFToken() },
+    credentials: 'same-origin',
+  });
+  window.location.href = '/login';
+}
+
 export default function TopNavBar({ onClearSession }: TopNavBarProps) {
   const [clearOpen, setClearOpen] = useState(false);
+  const [changeDeptOpen, setChangeDeptOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
 
   const handleConfirmClear = () => {
     onClearSession();
     setClearOpen(false);
+  };
+
+  const handleConfirmChangeDept = () => {
+    setChangeDeptOpen(false);
+    postChangeDepartment();
   };
 
   const handleConfirmLogout = () => {
@@ -73,6 +89,15 @@ export default function TopNavBar({ onClearSession }: TopNavBarProps) {
             <Button
               color="inherit"
               size="small"
+              startIcon={<SwapHorizIcon />}
+              onClick={() => setChangeDeptOpen(true)}
+              sx={{ textTransform: 'none' }}
+            >
+              Change Department
+            </Button>
+            <Button
+              color="inherit"
+              size="small"
               startIcon={<LogoutIcon />}
               onClick={() => setLogoutOpen(true)}
               sx={{ textTransform: 'none' }}
@@ -95,6 +120,22 @@ export default function TopNavBar({ onClearSession }: TopNavBarProps) {
           <Button onClick={() => setClearOpen(false)}>Cancel</Button>
           <Button color="error" variant="contained" onClick={handleConfirmClear}>
             Clear
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Change department confirmation */}
+      <Dialog open={changeDeptOpen} onClose={() => setChangeDeptOpen(false)}>
+        <DialogTitle>Change department?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Your current session will be abandoned. You will be returned to the login page to select a different department.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setChangeDeptOpen(false)}>Cancel</Button>
+          <Button color="warning" variant="contained" onClick={handleConfirmChangeDept}>
+            Change Department
           </Button>
         </DialogActions>
       </Dialog>

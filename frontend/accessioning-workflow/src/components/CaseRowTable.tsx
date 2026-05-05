@@ -34,6 +34,8 @@ import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import { useState, useCallback } from 'react';
 import type { ColumnDef, CaseRow, RowErrors } from '../types/index.ts';
 import { validateCaseNumber } from '../utils/caseNumber.ts';
+import { useSubmitKey } from '../contexts/SubmitKeyContext.ts';
+import { useShake } from '../hooks/useShake.ts';
 import PriorityToggle from './PriorityToggle.tsx';
 import PathologistAutocomplete from './PathologistAutocomplete.tsx';
 import PasteBulkDialog from './PasteBulkDialog.tsx';
@@ -291,6 +293,58 @@ function CaseCell({ col, row, rowIndex, error, onFieldChange }: CellProps) {
   return null;
 }
 
+interface RowCardProps {
+  row: CaseRow;
+  rowIdx: number;
+  columns: ColumnDef[];
+  rowErr: Record<string, string>;
+  onFieldChange: (rowIndex: number, key: string, value: unknown) => void;
+  onDeleteRequest: (idx: number) => void;
+}
+
+function RowCard({ row, rowIdx, columns, rowErr, onFieldChange, onDeleteRequest }: RowCardProps) {
+  const submitKey = useSubmitKey();
+  const hasError = Object.keys(rowErr).length > 0;
+  const shakeClass = useShake(hasError, submitKey);
+
+  return (
+    <Paper
+      variant="outlined"
+      className={shakeClass}
+      sx={{ p: 1.5, mb: 1, display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}
+    >
+      {columns.map((col) => (
+        <Box key={col.key} sx={{ minWidth: 0 }}>
+          {col.type !== 'multi_select' && col.type !== 'segment_toggle' && (
+            <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+              {col.label}
+            </Typography>
+          )}
+          <CaseCell
+            col={col}
+            row={row}
+            rowIndex={rowIdx}
+            error={rowErr[col.key]}
+            onFieldChange={onFieldChange}
+          />
+        </Box>
+      ))}
+      <Box ml="auto" alignSelf="center">
+        <Tooltip title="Remove row">
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => onDeleteRequest(rowIdx)}
+            aria-label="delete row"
+          >
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    </Paper>
+  );
+}
+
 export default function CaseRowTable({ columns, rows, onChange, errors = {} }: CaseRowTableProps) {
   const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -367,45 +421,17 @@ export default function CaseRowTable({ columns, rows, onChange, errors = {} }: C
       )}
 
       {/* Rows */}
-      {rows.map((row, rowIdx) => {
-        const rowErr = errors[rowIdx] ?? {};
-        return (
-          <Paper
-            key={row.id}
-            variant="outlined"
-            sx={{ p: 1.5, mb: 1, display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}
-          >
-            {columns.map((col) => (
-              <Box key={col.key} sx={{ minWidth: 0 }}>
-                {col.type !== 'multi_select' && col.type !== 'segment_toggle' && (
-                  <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                    {col.label}
-                  </Typography>
-                )}
-                <CaseCell
-                  col={col}
-                  row={row}
-                  rowIndex={rowIdx}
-                  error={rowErr[col.key]}
-                  onFieldChange={handleFieldChange}
-                />
-              </Box>
-            ))}
-            <Box ml="auto" alignSelf="center">
-              <Tooltip title="Remove row">
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => handleDeleteRequest(rowIdx)}
-                  aria-label="delete row"
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Paper>
-        );
-      })}
+      {rows.map((row, rowIdx) => (
+        <RowCard
+          key={row.id}
+          row={row}
+          rowIdx={rowIdx}
+          columns={columns}
+          rowErr={errors[rowIdx] ?? {}}
+          onFieldChange={handleFieldChange}
+          onDeleteRequest={handleDeleteRequest}
+        />
+      ))}
 
       {/* Delete confirmation dialog */}
       <Dialog open={deleteIdx !== null} onClose={() => setDeleteIdx(null)}>

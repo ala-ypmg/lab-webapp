@@ -1,36 +1,8 @@
-import { defineConfig, Plugin } from 'vitest/config';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import { readdirSync, rmSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-/** Remove stale accessioning entry-point bundles from a previous build. */
-function cleanStaleAccessioningAssets(): Plugin {
-  return {
-    name: 'clean-stale-accessioning-assets',
-    buildStart() {
-      const assetsDir = resolve(__dirname, '../../static/assets');
-      let files: string[];
-      try {
-        files = readdirSync(assetsDir);
-      } catch {
-        return; // assets dir not yet created
-      }
-      for (const file of files) {
-        // Match entry bundles only — skip chunk files
-        if (/^accessioning-(?!chunk)[^.]+\.(js|css)$/.test(file)) {
-          rmSync(resolve(assetsDir, file));
-          console.log(`[clean] Removed stale accessioning asset: ${file}`);
-        }
-      }
-    },
-  };
-}
 
 export default defineConfig({
-  plugins: [react(), cleanStaleAccessioningAssets()],
+  plugins: [react()],
   build: {
     outDir: '../../static',
     emptyOutDir: false,

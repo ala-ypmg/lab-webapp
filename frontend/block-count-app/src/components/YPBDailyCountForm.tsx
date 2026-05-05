@@ -24,6 +24,15 @@ const getCSRFToken = (): string => {
   return session?.csrfToken || '';
 };
 
+async function postToRoute(route: string): Promise<void> {
+  await fetch(route, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCSRFToken() },
+    credentials: 'same-origin',
+  });
+  window.location.href = '/login';
+}
+
 const YPBDailyCountForm: React.FC = () => {
   // Form state
   const [date, setDate] = useState<string>(getTodayDateString());
@@ -177,7 +186,17 @@ const YPBDailyCountForm: React.FC = () => {
   }, []);
 
   const handleLogout = useCallback(() => {
-    window.location.href = '/logout';
+    const csrfToken = (window as any).WORKFLOW_SESSION?.csrfToken ?? '';
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/logout';
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'csrf_token';
+    input.value = csrfToken;
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
   }, []);
 
   return (
@@ -190,7 +209,11 @@ const YPBDailyCountForm: React.FC = () => {
       }}
     >
       {/* Sticky Header */}
-      <Header runCount={entries.length} />
+      <Header
+        runCount={entries.length}
+        onClearSession={() => postToRoute('/clear-session')}
+        onChangeDepartment={() => postToRoute('/change-department')}
+      />
 
       {/* Scrollable Content */}
       <Box

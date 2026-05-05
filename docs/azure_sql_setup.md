@@ -35,7 +35,7 @@ The application uses **two databases** for separation of concerns:
 | Database | Purpose | Tier | Tables |
 |----------|---------|------|--------|
 | **`users`** | User authentication & admin data | Serverless GP_S_Gen5 | `users`, `admin_users` |
-| **`ezeos`** | Form submissions & session data | Serverless GP_S_Gen5 (Free Limit) | `user_sessions`, `form_submissions`, `audit_log` |
+| **`main`** | Form submissions & session data | Serverless GP_S_Gen5 (Free Limit) | `user_sessions`, `form_submissions`, `audit_log` |
 
 > **Note**: Cross-database foreign key constraints are not supported in Azure SQL. Referential integrity between databases is enforced at the application level.
 
@@ -53,7 +53,7 @@ Before you can connect to the Azure SQL server, you **MUST** enable network acce
 
 2. **Go to your SQL Server**:
    - Search for "SQL servers" in the top search bar
-   - Click on **`ezeos`** server
+   - Click on **`main`** server
 
 3. **Access Networking Settings**:
    - In the left sidebar, under **Security**, click **Networking**
@@ -145,7 +145,7 @@ If you haven't set a password for the admin user, or need to reset it:
 
 2. **Go to your SQL Server**:
    - Search for "SQL servers"
-   - Click on **`ezeos`**
+   - Click on **`main`**
 
 3. **Reset Admin Password**:
    - In the left sidebar, under **Settings**, click **Properties**
@@ -167,7 +167,7 @@ CREATE USER app_user WITH PASSWORD = 'SecureP@ssword123!';
 ALTER ROLE db_datareader ADD MEMBER app_user;
 ALTER ROLE db_datawriter ADD MEMBER app_user;
 
--- Connect to "ezeos" database
+-- Connect to "main" database
 CREATE USER app_user WITH PASSWORD = 'SecureP@ssword123!';
 ALTER ROLE db_datareader ADD MEMBER app_user;
 ALTER ROLE db_datawriter ADD MEMBER app_user;
@@ -194,24 +194,24 @@ Both databases use **serverless tier** with auto-pause enabled. When paused:
 -- Must connect to master database
 SELECT name, state_desc 
 FROM sys.databases 
-WHERE name IN ('users', 'ezeos');
+WHERE name IN ('users', 'main');
 ```
 
 ### Manually Resume a Database
 
 **Via Azure Portal:**
-1. Navigate to the database (e.g., `ezeos` or `users`)
+1. Navigate to the database (e.g., `main` or `users`)
 2. Click **Resume** button in the toolbar
 3. Wait for status to change to `Online`
 
 **Via REST API:**
 ```bash
 # Using Azure CLI
-az sql db update --resource-group ezeos --server ezeos \
+az sql db update --resource-group main --server main \
     --name users --auto-pause-delay -1
 
 # This disables auto-pause. To re-enable:
-az sql db update --resource-group ezeos --server ezeos \
+az sql db update --resource-group main --server main \
     --name users --auto-pause-delay 60
 ```
 
@@ -274,11 +274,11 @@ The script contains two sections that must be run against different databases:
    - Select SECTION 1 (from `-- SECTION 1: "users" DATABASE SCHEMA` to before SECTION 2)
    - Press F5 to execute
 
-4. **Connect to `ezeos` database**:
-   - Change connection to database: `ezeos`
+4. **Connect to `main` database**:
+   - Change connection to database: `main`
 
 5. **Run Section 2**:
-   - Select SECTION 2 (from `-- SECTION 2: "ezeos" DATABASE SCHEMA` to end)
+   - Select SECTION 2 (from `-- SECTION 2: "main" DATABASE SCHEMA` to end)
    - Press F5 to execute
 
 #### Method 2: Using sqlcmd (Command Line)
@@ -295,9 +295,9 @@ sqlcmd -S ezeos.database.windows.net \
        -P 'YOUR_PASSWORD' \
        -i migrations/azure_sql_schema_users.sql
 
-# Run Section 2 against "ezeos" database
+# Run Section 2 against "main" database
 sqlcmd -S ezeos.database.windows.net \
-       -d ezeos \
+       -d main \
        -U ala \
        -P 'YOUR_PASSWORD' \
        -i migrations/azure_sql_schema_ezeos.sql
@@ -335,7 +335,7 @@ def run_schema_migration(server, database, username, password, script_section):
 
 # Usage:
 # run_schema_migration('ezeos.database.windows.net', 'users', 'ala', 'password', section1_sql)
-# run_schema_migration('ezeos.database.windows.net', 'ezeos', 'ala', 'password', section2_sql)
+# run_schema_migration('ezeos.database.windows.net', 'main', 'ala', 'password', section2_sql)
 ```
 
 ### Verify Migration
@@ -350,7 +350,7 @@ WHERE TABLE_TYPE = 'BASE TABLE';
 
 -- Expected results:
 -- "users" database: users, admin_users
--- "ezeos" database: user_sessions, form_submissions, audit_log
+-- "main" database: user_sessions, form_submissions, audit_log
 ```
 
 ---
@@ -412,7 +412,7 @@ python migrations/migrate_data_to_azure.py
 1. **Reads from SQLite**: `instance/lab_data.db`
 2. **Writes to Azure SQL** in order:
    - `users` database: `users`, `admin_users`
-   - `ezeos` database: `user_sessions`, `form_submissions`, `audit_log`
+   - `main` database: `user_sessions`, `form_submissions`, `audit_log`
 3. **Preserves IDs**: Uses `SET IDENTITY_INSERT ON/OFF`
 4. **Converts types**: SQLite booleans → SQL Server BIT (0/1)
 5. **Batch processing**: Inserts in batches of 100 for performance
@@ -427,7 +427,7 @@ DATA MIGRATION: SQLite → Azure SQL
 
 Source: instance/lab_data.db
 Target Server: ezeos.database.windows.net
-Target Databases: users, ezeos
+Target Databases: users, main
 Batch Size: 100
 
 --------------------------------------------------
@@ -502,7 +502,7 @@ MIGRATION VERIFICATION: SQLite vs Azure SQL
 
 Source: instance/lab_data.db
 Target Server: ezeos.database.windows.net
-Target Databases: users, ezeos
+Target Databases: users, main
 Sample Size: 5 records per table
 
 --------------------------------------------------
@@ -520,11 +520,11 @@ Verifying 'users' database...
     Checking admin_users... ✅
 
 --------------------------------------------------
-Verifying 'ezeos' database...
+Verifying 'main' database...
 --------------------------------------------------
-  ✓ Connected to Azure SQL (ezeos)
+  ✓ Connected to Azure SQL (main)
 
-  Verifying 'ezeos' database tables...
+  Verifying 'main' database tables...
     Checking user_sessions... ✅
     Checking form_submissions... ✅
     Checking audit_log... ✅
@@ -625,7 +625,7 @@ Set these environment variables in your `.env` file:
 # Azure SQL Database Configuration
 AZURE_SQL_SERVER=ezeos.database.windows.net
 AZURE_SQL_USERS_DATABASE=users
-AZURE_SQL_EZEOS_DATABASE=ezeos
+AZURE_SQL_MAIN_DATABASE=main
 AZURE_SQL_USERNAME=ala
 AZURE_SQL_PASSWORD=your-secure-password-here
 AZURE_SQL_DRIVER={ODBC Driver 17 for SQL Server}
@@ -645,11 +645,11 @@ TrustServerCertificate=no;
 Connection Timeout=30;
 ```
 
-#### For "ezeos" Database (Sessions/Submissions)
+#### For "main" Database (Sessions/Submissions)
 ```
 Driver={ODBC Driver 17 for SQL Server};
 Server=ezeos.database.windows.net;
-Database=ezeos;
+Database=main;
 Uid=ala;
 Pwd={your-password};
 Encrypt=yes;
@@ -676,11 +676,11 @@ def get_users_db_connection():
         f"Connection Timeout=30;"
     )
 
-def get_ezeos_db_connection():
+def get_main_db_connection():
     return pyodbc.connect(
         f"DRIVER={os.environ.get('AZURE_SQL_DRIVER', '{ODBC Driver 17 for SQL Server}')};"
         f"SERVER={os.environ['AZURE_SQL_SERVER']};"
-        f"DATABASE={os.environ.get('AZURE_SQL_EZEOS_DATABASE', 'ezeos')};"
+        f"DATABASE={os.environ.get('AZURE_SQL_MAIN_DATABASE', 'main')};"
         f"UID={os.environ['AZURE_SQL_USERNAME']};"
         f"PWD={os.environ['AZURE_SQL_PASSWORD']};"
         f"Encrypt=yes;"
@@ -748,7 +748,7 @@ def get_ezeos_db_connection():
 
 ## Troubleshooting
 
-### Error: "Cannot open server 'ezeos' requested by the login"
+### Error: "Cannot open server 'main' requested by the login"
 
 **Cause**: Firewall blocking your IP address.
 
@@ -760,7 +760,7 @@ def get_ezeos_db_connection():
 
 **Solution**: Reset admin password in Azure Portal
 
-### Error: "Database 'users' on server 'ezeos' is not currently available"
+### Error: "Database 'users' on server 'main' is not currently available"
 
 **Cause**: Database is paused (serverless auto-pause feature).
 
@@ -802,7 +802,7 @@ HOMEBREW_NO_ENV_FILTERING=1 ACCEPT_EULA=Y brew install msodbcsql17
 | Task | Command/Location |
 |------|------------------|
 | Azure Portal | https://portal.azure.com |
-| SQL Server Resource | SQL servers → ezeos |
+| SQL Server Resource | SQL servers → main |
 | Networking Settings | SQL server → Security → Networking |
 | Reset Password | SQL server → Overview → Reset password |
 | Database Status | SQL databases → (database name) → Status |

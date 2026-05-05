@@ -1,0 +1,28 @@
+{
+  "name": "lab-webapp",
+  "private": true,
+  "version": "1.0.0",
+  "description": "YPMG Lab Workflow Webapp — Flask backend with React frontends for lab workflow data capture",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coffinchaser/lab-webapp.git"
+  },
+  "workspaces": [
+    "frontend/accessioning-workflow",
+    "frontend/ypb-daily-count"
+  ],
+  "scripts": {
+    "dev:accessioning": "npm run dev --workspace frontend/accessioning-workflow",
+    "dev:ypb": "npm run dev --workspace frontend/ypb-daily-count",
+    "build": "npm run build --workspaces",
+    "build:accessioning": "npm run build --workspace frontend/accessioning-workflow",
+    "build:ypb": "npm run build --workspace frontend/ypb-daily-count",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test:run --workspaces --if-present",
+    "test:coverage": "npm run test:coverage --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

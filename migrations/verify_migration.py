@@ -42,7 +42,7 @@ AZURE_SQL_PASSWORD = os.environ.get("AZURE_SQL_PASSWORD", "")
 
 # Database names
 USERS_DATABASE = "users"
-EZEOS_DATABASE = "ezeos"
+MAIN_DATABASE = "main"
 
 # Number of sample records to check
 SAMPLE_SIZE = 5
@@ -64,8 +64,8 @@ USERS_DB_TABLES = {
     }
 }
 
-# Tables in 'ezeos' database
-EZEOS_DB_TABLES = {
+# Tables in 'main' database
+MAIN_DB_TABLES = {
     "user_sessions": {
         "key_column": "id",
         "check_columns": ["session_id", "user_id", "current_page", "completed"]
@@ -240,7 +240,7 @@ def get_azure_connection(database: str, timeout: int = 60) -> pymssql.Connection
     Create connection to Azure SQL database.
 
     Args:
-        database: Database name ('users' or 'ezeos')
+        database: Database name ('users' or 'main')
         timeout: Connection timeout in seconds
 
     Returns:
@@ -598,18 +598,18 @@ def run_verification():
         report.add_connection_error(f"Failed to connect to '{USERS_DATABASE}' database: {e}")
         print(f"  ❌ ERROR: {e}")
     
-    # Verify 'ezeos' database
+    # Verify 'main' database
     print("\n" + "-" * 50)
-    print("Verifying 'ezeos' database...")
+    print("Verifying 'main' database...")
     print("-" * 50)
-    
+
     try:
-        ezeos_conn = get_azure_connection(EZEOS_DATABASE)
-        print(f"  ✓ Connected to Azure SQL ({EZEOS_DATABASE})")
-        verify_database_tables(sqlite_conn, ezeos_conn, EZEOS_DB_TABLES, EZEOS_DATABASE, report)
-        ezeos_conn.close()
+        main_conn = get_azure_connection(MAIN_DATABASE)
+        print(f"  ✓ Connected to Azure SQL ({MAIN_DATABASE})")
+        verify_database_tables(sqlite_conn, main_conn, MAIN_DB_TABLES, MAIN_DATABASE, report)
+        main_conn.close()
     except Exception as e:
-        report.add_connection_error(f"Failed to connect to '{EZEOS_DATABASE}' database: {e}")
+        report.add_connection_error(f"Failed to connect to '{MAIN_DATABASE}' database: {e}")
         print(f"  ❌ ERROR: {e}")
     
     # Close SQLite connection

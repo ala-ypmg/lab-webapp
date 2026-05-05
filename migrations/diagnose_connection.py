@@ -20,7 +20,7 @@ def check_env_vars():
     required_vars = [
         ('AZURE_SQL_SERVER', 'ezeos.database.windows.net'),
         ('AZURE_SQL_DATABASE_USERS', 'users'),
-        ('AZURE_SQL_DATABASE_EZEOS', 'ezeos'),
+        ('AZURE_SQL_DATABASE_MAIN', 'main'),
         ('AZURE_SQL_USERNAME', 'ala'),
         ('AZURE_SQL_PASSWORD', '(must be set)'),
         ('USE_AZURE_SQL', 'true'),

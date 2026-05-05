@@ -229,7 +229,7 @@ def verify_azure_sql_connection():
     try:
         from utils.db_connection import verify_all_connections
         results = verify_all_connections()
-        
+
         all_ok = all(results.values())
         if all_ok:
             logger.info("All Azure SQL database connections verified successfully")
@@ -239,7 +239,7 @@ def verify_azure_sql_connection():
             failed_dbs = [db for db, status in results.items() if not status]
             logger.error(f"Azure SQL connection verification failed for: {', '.join(failed_dbs)}")
             raise RuntimeError(f"Database connection failed for: {', '.join(failed_dbs)}")
-        
+
         return all_ok
     except ImportError as e:
         logger.error(f"Failed to import database connection utilities: {e}")
@@ -249,12 +249,231 @@ def verify_azure_sql_connection():
         raise
 
 
+def init_azure_sql_schema():
+    """
+    Idempotently create all Azure SQL tables on startup.
+
+    The connection-verification step only confirms the server is reachable
+    (SELECT 1); it does NOT verify that the application tables exist.  Running
+    CREATE TABLE with an IF NOT EXISTS guard on every boot is safe and ensures
+    the schema is always present — matching what init_vercel_database() does for
+    the SQLite/Vercel path.
+    """
+    from utils.db_connection import get_users_connection, get_main_connection
+
+    # ------------------------------------------------------------------ users db
+    users_ddl = [
+        """
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'users')
+        CREATE TABLE users (
+            id            INT PRIMARY KEY IDENTITY(1,1),
+            user_id       NVARCHAR(50)  NOT NULL,
+            email         NVARCHAR(255) NOT NULL,
+            passcode_hash NVARCHAR(255) NOT NULL,
+            created_at    DATETIME2     DEFAULT GETDATE(),
+            last_login    DATETIME2     NULL,
+            is_active     BIT           DEFAULT 1,
+            is_confirmed  BIT           DEFAULT 0,
+            confirmed_at  DATETIME2     NULL,
+            CONSTRAINT UQ_users_user_id UNIQUE (user_id),
+            CONSTRAINT UQ_users_email   UNIQUE (email)
+        )
+        """,
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_users_user_id' AND object_id = OBJECT_ID('users')) CREATE INDEX idx_users_user_id ON users(user_id)",
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_users_email'   AND object_id = OBJECT_ID('users')) CREATE INDEX idx_users_email   ON users(email)",
+        """
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'admin_users')
+        CREATE TABLE admin_users (
+            id          INT PRIMARY KEY IDENTITY(1,1),
+            user_id     INT           NOT NULL,
+            admin_level INT           DEFAULT 1,
+            created_at  DATETIME2     DEFAULT GETDATE(),
+            CONSTRAINT FK_admin_users_user FOREIGN KEY (user_id)
+                REFERENCES users(id) ON DELETE CASCADE
+        )
+        """,
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_admin_users_user_id' AND object_id = OBJECT_ID('admin_users')) CREATE INDEX idx_admin_users_user_id ON admin_users(user_id)",
+    ]
+
+    conn = get_users_connection()
+    try:
+        cur = conn.cursor()
+        for stmt in users_ddl:
+            cur.execute(stmt)
+            conn.commit()
+        logger.info("Azure SQL 'users' database schema verified/created")
+    finally:
+        conn.close()
+
+    # ------------------------------------------------------------------ main db
+    main_ddl = [
+        """
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'user_sessions')
+        CREATE TABLE user_sessions (
+            id                          INT PRIMARY KEY IDENTITY(1,1),
+            session_id                  NVARCHAR(255) NOT NULL,
+            user_id                     INT           NOT NULL,
+            current_page                INT           DEFAULT 1,
+            max_page_reached            INT           DEFAULT 1,
+            started_at                  DATETIME2     DEFAULT GETDATE(),
+            completed                   BIT           DEFAULT 0,
+            login_timestamp             DATETIME2     NULL,
+            department                  NVARCHAR(50)  NULL,
+            remember_me                 BIT           DEFAULT 0,
+            ypb_daily_count_data        NVARCHAR(MAX) NULL,
+            final_block_time            TIME          NULL,
+            baked_ihcs_pt_link          NVARCHAR(10)  NULL,
+            ihcs_in_pt_link             NVARCHAR(10)  NULL,
+            non_baked_ihc               NVARCHAR(10)  NULL,
+            ihcs_in_buffer_wash         NVARCHAR(10)  NULL,
+            pathologist_requests_status NVARCHAR(20)  NULL,
+            request_source_email        BIT           NULL,
+            request_source_orchard      BIT           NULL,
+            request_source_send_out     BIT           NULL,
+            in_progress_her2            NVARCHAR(10)  NULL,
+            upfront_special_stains      NVARCHAR(20)  NULL,
+            peloris_maintenance         NVARCHAR(20)  NULL,
+            notes                       NVARCHAR(MAX) NULL,
+            CONSTRAINT UQ_user_sessions_session_id UNIQUE (session_id)
+        )
+        """,
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_sessions_user_id'   AND object_id = OBJECT_ID('user_sessions')) CREATE INDEX idx_sessions_user_id   ON user_sessions(user_id)",
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_sessions_session_id' AND object_id = OBJECT_ID('user_sessions')) CREATE INDEX idx_sessions_session_id ON user_sessions(session_id)",
+        """
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'form_submissions')
+        CREATE TABLE form_submissions (
+            id                          INT PRIMARY KEY IDENTITY(1,1),
+            session_id                  INT           NOT NULL,
+            user_id                     INT           NOT NULL,
+            login_timestamp             DATETIME2     NOT NULL,
+            department                  NVARCHAR(50)  NOT NULL,
+            remember_me                 BIT           DEFAULT 0,
+            ypb_daily_count_data        NVARCHAR(MAX) NULL,
+            final_block_time            TIME          NULL,
+            baked_ihcs_pt_link          NVARCHAR(10)  NULL,
+            ihcs_in_pt_link             NVARCHAR(10)  NULL,
+            non_baked_ihc               NVARCHAR(10)  NULL,
+            ihcs_in_buffer_wash         NVARCHAR(10)  NULL,
+            pathologist_requests_status NVARCHAR(20)  NULL,
+            request_source_email        BIT           NULL,
+            request_source_orchard      BIT           NULL,
+            request_source_send_out     BIT           NULL,
+            in_progress_her2            NVARCHAR(10)  NULL,
+            upfront_special_stains      NVARCHAR(20)  NULL,
+            peloris_maintenance         NVARCHAR(20)  NULL,
+            notes                       NVARCHAR(MAX) NULL,
+            submitted_at                DATETIME2     DEFAULT GETDATE(),
+            CONSTRAINT FK_form_submissions_session FOREIGN KEY (session_id)
+                REFERENCES user_sessions(id) ON DELETE CASCADE
+        )
+        """,
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_submissions_user_id'   AND object_id = OBJECT_ID('form_submissions')) CREATE INDEX idx_submissions_user_id   ON form_submissions(user_id)",
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_submissions_department' AND object_id = OBJECT_ID('form_submissions')) CREATE INDEX idx_submissions_department ON form_submissions(department)",
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_submissions_timestamp'  AND object_id = OBJECT_ID('form_submissions')) CREATE INDEX idx_submissions_timestamp  ON form_submissions(submitted_at)",
+        # Migrate workflow status columns BIT → NVARCHAR(10) — unconditional, idempotent on SQL Server
+        "ALTER TABLE user_sessions ALTER COLUMN baked_ihcs_pt_link NVARCHAR(10) NULL",
+        "ALTER TABLE user_sessions ALTER COLUMN ihcs_in_pt_link NVARCHAR(10) NULL",
+        "ALTER TABLE user_sessions ALTER COLUMN non_baked_ihc NVARCHAR(10) NULL",
+        "ALTER TABLE user_sessions ALTER COLUMN ihcs_in_buffer_wash NVARCHAR(10) NULL",
+        "ALTER TABLE user_sessions ALTER COLUMN in_progress_her2 NVARCHAR(10) NULL",
+        "ALTER TABLE form_submissions ALTER COLUMN baked_ihcs_pt_link NVARCHAR(10) NULL",
+        "ALTER TABLE form_submissions ALTER COLUMN ihcs_in_pt_link NVARCHAR(10) NULL",
+        "ALTER TABLE form_submissions ALTER COLUMN non_baked_ihc NVARCHAR(10) NULL",
+        "ALTER TABLE form_submissions ALTER COLUMN ihcs_in_buffer_wash NVARCHAR(10) NULL",
+        "ALTER TABLE form_submissions ALTER COLUMN in_progress_her2 NVARCHAR(10) NULL",
+        """
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'audit_log')
+        CREATE TABLE audit_log (
+            id         INT PRIMARY KEY IDENTITY(1,1),
+            user_id    INT           NOT NULL,
+            action     NVARCHAR(100) NOT NULL,
+            table_name NVARCHAR(50)  NULL,
+            record_id  INT           NULL,
+            timestamp  DATETIME2     DEFAULT GETDATE(),
+            ip_address NVARCHAR(45)  NULL,
+            details    NVARCHAR(MAX) NULL
+        )
+        """,
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_audit_user_id'  AND object_id = OBJECT_ID('audit_log')) CREATE INDEX idx_audit_user_id  ON audit_log(user_id)",
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_audit_timestamp' AND object_id = OBJECT_ID('audit_log')) CREATE INDEX idx_audit_timestamp ON audit_log(timestamp)",
+        """
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'accessioning_submissions')
+        CREATE TABLE accessioning_submissions (
+            id              INT PRIMARY KEY IDENTITY(1,1),
+            user_id         INT           NOT NULL,
+            submitted_at    DATETIME2     DEFAULT GETDATE(),
+            submission_data NVARCHAR(MAX) NOT NULL
+        )
+        """,
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_accessioning_user_id'     AND object_id = OBJECT_ID('accessioning_submissions')) CREATE INDEX idx_accessioning_user_id     ON accessioning_submissions(user_id)",
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_accessioning_submitted_at' AND object_id = OBJECT_ID('accessioning_submissions')) CREATE INDEX idx_accessioning_submitted_at ON accessioning_submissions(submitted_at)",
+        """
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'case_number_prefixes')
+        CREATE TABLE case_number_prefixes (
+            id         INT PRIMARY KEY IDENTITY(1,1),
+            prefix     NVARCHAR(20)  NOT NULL,
+            facility   NVARCHAR(100) NOT NULL,
+            is_active  BIT           DEFAULT 1,
+            created_at DATETIME2     DEFAULT GETDATE(),
+            CONSTRAINT UQ_case_number_prefixes_prefix UNIQUE (prefix)
+        )
+        """,
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_prefixes_facility'  AND object_id = OBJECT_ID('case_number_prefixes')) CREATE INDEX idx_prefixes_facility  ON case_number_prefixes(facility)",
+        "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_prefixes_is_active' AND object_id = OBJECT_ID('case_number_prefixes')) CREATE INDEX idx_prefixes_is_active ON case_number_prefixes(is_active)",
+        """
+        IF NOT EXISTS (SELECT 1 FROM case_number_prefixes)
+        INSERT INTO case_number_prefixes (prefix, facility) VALUES
+            ('KAS',   'AH Bakersfield'),
+            ('KAB',   'AH Bakersfield'),
+            ('KAN',   'AH Bakersfield'),
+            ('KAF',   'AH Bakersfield'),
+            ('KDS',   'AH Delano'),
+            ('KDB',   'AH Delano'),
+            ('KDN',   'AH Delano'),
+            ('KDF',   'AH Delano'),
+            ('KHS',   'AH Specialty Bakersfield'),
+            ('KHB',   'AH Specialty Bakersfield'),
+            ('KHN',   'AH Specialty Bakersfield'),
+            ('KHF',   'AH Specialty Bakersfield'),
+            ('KTS',   'AH Tehachapi'),
+            ('KTB',   'AH Tehachapi'),
+            ('KTN',   'AH Tehachapi'),
+            ('KTF',   'AH Tehachapi'),
+            ('KS',    'Bakersfield OP'),
+            ('KB',    'Bakersfield OP'),
+            ('KN',    'Bakersfield OP'),
+            ('KF',    'Bakersfield OP'),
+            ('TC-KPO','Bakersfield TC'),
+            ('VKS',   'Kaweah Health Medical Center'),
+            ('VKB',   'Kaweah Health Medical Center'),
+            ('VKN',   'Kaweah Health Medical Center'),
+            ('VKF',   'Kaweah Health Medical Center'),
+            ('VVS',   'Visalia'),
+            ('VVB',   'Visalia'),
+            ('VVN',   'Visalia'),
+            ('VVF',   'Visalia'),
+            ('SVS',   'Visalia')
+        """,
+    ]
+
+    conn = get_main_connection()
+    try:
+        cur = conn.cursor()
+        for stmt in main_ddl:
+            cur.execute(stmt)
+            conn.commit()
+        logger.info("Azure SQL 'main' database schema verified/created")
+    finally:
+        conn.close()
+
+
 # Initialize database based on configuration
 if USE_AZURE_SQL:
-    # Azure SQL mode - verify connection
+    # Azure SQL mode - verify connection then ensure schema exists
     logger.info("Initializing Azure SQL connections...")
     try:
         verify_azure_sql_connection()
+        init_azure_sql_schema()
     except Exception as e:
         logger.critical(f"Azure SQL initialization failed: {e}")
         # Don't raise here - let the app start but log critical error
@@ -401,7 +620,12 @@ def internal_error(error):
 @app.errorhandler(Exception)
 def handle_database_error(error):
     from flask import render_template
-    
+    from werkzeug.exceptions import HTTPException
+
+    # Let HTTP exceptions (404, 405, 400 CSRF, etc.) propagate normally
+    if isinstance(error, HTTPException):
+        return error
+
     # Check if this is a database connection error
     error_str = str(error).lower()
     if 'pymssql' in error_str or 'database' in error_str or 'connection' in error_str:
@@ -409,8 +633,7 @@ def handle_database_error(error):
         return render_template('error.html',
                              error_code=503,
                              error_message='Database connection error. Please try again later.'), 503
-    
-    # Re-raise other exceptions
+
     raise error
 
 # Context processor for global variables

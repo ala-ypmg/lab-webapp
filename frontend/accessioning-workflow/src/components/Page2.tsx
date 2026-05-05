@@ -6,6 +6,8 @@
  */
 import { Box, Typography, Alert } from '@mui/material';
 import type { SectionKey, FormData, SectionErrors } from '../types/index.ts';
+import { useSubmitKey } from '../contexts/SubmitKeyContext.ts';
+import { useShake } from '../hooks/useShake.ts';
 import ClientRequests from './sections/ClientRequests.tsx';
 import BoneMarrow from './sections/BoneMarrow.tsx';
 import FrozenSection from './sections/FrozenSection.tsx';
@@ -35,6 +37,8 @@ export default function Page2({
   sectionErrors = {},
   pageError,
 }: Page2Props) {
+  const submitKey = useSubmitKey();
+  const pageErrorShakeClass = useShake(!!pageError, submitKey);
   if (selectedTypes.size === 0) {
     return (
       <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, py: 4, textAlign: 'center' }}>
@@ -55,9 +59,11 @@ export default function Page2({
       </Typography>
 
       {pageError && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {pageError}
-        </Alert>
+        <div className={pageErrorShakeClass}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {pageError}
+          </Alert>
+        </div>
       )}
 
       {SECTION_ORDER.filter((key) => selectedTypes.has(key)).map((key) => {

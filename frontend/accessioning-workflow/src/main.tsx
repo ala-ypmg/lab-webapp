@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import './shake.css';
 import App from './App.tsx';
 
 const el = document.getElementById('root');

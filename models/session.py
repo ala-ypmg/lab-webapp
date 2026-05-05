@@ -15,17 +15,17 @@ else:
 def get_connection(db_path):
     """
     Get database connection based on configuration
-    Sessions are stored in the ezeos database
-    
+    Sessions are stored in the main database
+
     Args:
         db_path: For SQLite, this is the path. For Azure SQL, this is ignored.
-        
+
     Returns:
         Database connection
     """
     if USE_AZURE_SQL:
-        from utils.db_connection import get_ezeos_connection
-        return get_ezeos_connection()
+        from utils.db_connection import get_main_connection
+        return get_main_connection()
     else:
         return sqlite3.connect(db_path)
 
@@ -45,6 +45,26 @@ def bool_to_db(value):
     if value is None:
         return None
     return 1 if value else 0
+
+
+_VALID_STATUSES = {'done', 'pending', 'na'}
+
+
+def _coerce_status(value):
+    """Coerce a workflow status field to 'done'/'pending'/'na' or None.
+
+    Old sessions stored 1/0 integers; new sessions store strings.
+    Any non-string truthy legacy value maps to 'done'.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        if value in _VALID_STATUSES:
+            return value
+        # Legacy: BIT→NVARCHAR migration leaves '1'/'0' strings in old rows
+        return 'done' if value == '1' else None
+    # Legacy integer: 1 → 'done', 0 → None
+    return 'done' if value else None
 
 
 class UserSession:
@@ -78,17 +98,18 @@ class UserSession:
 
         # Page 2/3 data (workflow data)
         self.final_block_time = final_block_time
-        self.baked_ihcs_pt_link = bool(baked_ihcs_pt_link) if baked_ihcs_pt_link is not None else None
-        self.ihcs_in_pt_link = bool(ihcs_in_pt_link) if ihcs_in_pt_link is not None else None
-        self.non_baked_ihc = bool(non_baked_ihc) if non_baked_ihc is not None else None
-        self.ihcs_in_buffer_wash = bool(ihcs_in_buffer_wash) if ihcs_in_buffer_wash is not None else None
-        self.pathologist_requests_status = pathologist_requests_status
+        # Status fields store 'done'/'pending'/'na' strings (or None)
+        self.baked_ihcs_pt_link = _coerce_status(baked_ihcs_pt_link)
+        self.ihcs_in_pt_link = _coerce_status(ihcs_in_pt_link)
+        self.non_baked_ihc = _coerce_status(non_baked_ihc)
+        self.ihcs_in_buffer_wash = _coerce_status(ihcs_in_buffer_wash)
+        self.pathologist_requests_status = _coerce_status(pathologist_requests_status)
         self.request_source_email = bool(request_source_email) if request_source_email is not None else None
         self.request_source_orchard = bool(request_source_orchard) if request_source_orchard is not None else None
         self.request_source_send_out = bool(request_source_send_out) if request_source_send_out is not None else None
-        self.in_progress_her2 = bool(in_progress_her2) if in_progress_her2 is not None else None
-        self.upfront_special_stains = upfront_special_stains
-        self.peloris_maintenance = peloris_maintenance
+        self.in_progress_her2 = _coerce_status(in_progress_her2)
+        self.upfront_special_stains = _coerce_status(upfront_special_stains)
+        self.peloris_maintenance = _coerce_status(peloris_maintenance)
 
         # Page 3/4 data (notes)
         self.notes = notes
@@ -224,18 +245,18 @@ class UserSession:
     def save_page2_data(self, db_path, data):
         """Save Page 2/3 workflow data (depending on department)"""
         self.final_block_time = data.get('final_block_time')
-        self.baked_ihcs_pt_link = data.get('baked_ihcs_pt_link', False)
-        self.ihcs_in_pt_link = data.get('ihcs_in_pt_link', False)
-        self.non_baked_ihc = data.get('non_baked_ihc', False)
-        self.ihcs_in_buffer_wash = data.get('ihcs_in_buffer_wash', False)
+        self.baked_ihcs_pt_link = data.get('baked_ihcs_pt_link')
+        self.ihcs_in_pt_link = data.get('ihcs_in_pt_link')
+        self.non_baked_ihc = data.get('non_baked_ihc')
+        self.ihcs_in_buffer_wash = data.get('ihcs_in_buffer_wash')
         self.pathologist_requests_status = data.get('pathologist_requests_status')
         self.request_source_email = data.get('request_source_email', False)
         self.request_source_orchard = data.get('request_source_orchard', False)
         self.request_source_send_out = data.get('request_source_send_out', False)
-        self.in_progress_her2 = data.get('in_progress_her2', False)
+        self.in_progress_her2 = data.get('in_progress_her2')
         self.upfront_special_stains = data.get('upfront_special_stains')
         self.peloris_maintenance = data.get('peloris_maintenance')
-        
+
         conn = get_connection(db_path)
         cursor = conn.cursor()
         try:
@@ -255,17 +276,17 @@ class UserSession:
                     peloris_maintenance = {PH}
                 WHERE id = {PH}
             ''', (self.final_block_time,
-                  bool_to_db(self.baked_ihcs_pt_link), 
-                  bool_to_db(self.ihcs_in_pt_link),
-                  bool_to_db(self.non_baked_ihc), 
-                  bool_to_db(self.ihcs_in_buffer_wash), 
-                  self.pathologist_requests_status, 
+                  self.baked_ihcs_pt_link,
+                  self.ihcs_in_pt_link,
+                  self.non_baked_ihc,
+                  self.ihcs_in_buffer_wash,
+                  self.pathologist_requests_status,
                   bool_to_db(self.request_source_email),
-                  bool_to_db(self.request_source_orchard), 
+                  bool_to_db(self.request_source_orchard),
                   bool_to_db(self.request_source_send_out),
-                  bool_to_db(self.in_progress_her2),
-                  self.upfront_special_stains, 
-                  self.peloris_maintenance, 
+                  self.in_progress_her2,
+                  self.upfront_special_stains,
+                  self.peloris_maintenance,
                   self.id))
             conn.commit()
         finally:

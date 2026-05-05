@@ -4,7 +4,7 @@ from datetime import timedelta
 class Config:
     """Base configuration"""
     # Security
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'q3rwsX9zGJ4pfQJg2S7fQ7uefOLBZ7tfIrm1t0Ve5HFGYOU5lCElJFbg4GwtWklk'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
     
     # Database - SQLite (legacy, for backward compatibility)
     DATABASE_URI = os.path.join(os.path.dirname(__file__), 'instance', 'lab_data.db')
@@ -15,7 +15,7 @@ class Config:
     AZURE_SQL_USERNAME = os.environ.get('AZURE_SQL_USERNAME', 'ala')
     AZURE_SQL_PASSWORD = os.environ.get('AZURE_SQL_PASSWORD', '')
     AZURE_SQL_DATABASE_USERS = os.environ.get('AZURE_SQL_DATABASE_USERS', 'users')
-    AZURE_SQL_DATABASE_EZEOS = os.environ.get('AZURE_SQL_DATABASE_EZEOS', 'ezeos')
+    AZURE_SQL_DATABASE_MAIN = os.environ.get('AZURE_SQL_DATABASE_MAIN', 'main')
     
     # Session Management
     SESSION_TYPE = 'filesystem'
@@ -62,7 +62,7 @@ class Config:
         Build pymssql connection keyword arguments for Azure SQL.
 
         Args:
-            database: Which database to connect to ('users' or 'ezeos')
+            database: Which database to connect to ('users' or 'main')
 
         Returns:
             dict of keyword arguments for pymssql.connect()
@@ -70,7 +70,7 @@ class Config:
         if database == 'users':
             db_name = cls.AZURE_SQL_DATABASE_USERS
         else:
-            db_name = cls.AZURE_SQL_DATABASE_EZEOS
+            db_name = cls.AZURE_SQL_DATABASE_MAIN
 
         return {
             'server': cls.AZURE_SQL_SERVER,
@@ -98,6 +98,8 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SAMESITE = 'Lax'
     # Use Azure SQL in production
     USE_AZURE_SQL = os.environ.get('USE_AZURE_SQL', 'true').lower() == 'true'
+    SESSION_TYPE = None
+    SESSION_FILE_DIR = None
 
 class AzureSQLConfig(ProductionConfig):
     """Azure SQL production configuration"""

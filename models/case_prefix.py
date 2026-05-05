@@ -13,11 +13,11 @@ else:
 def get_connection(db_path):
     """
     Get database connection based on configuration.
-    Prefixes are stored in the ezeos database.
+    Prefixes are stored in the main database.
     """
     if USE_AZURE_SQL:
-        from utils.db_connection import get_ezeos_connection
-        return get_ezeos_connection()
+        from utils.db_connection import get_main_connection
+        return get_main_connection()
     else:
         return sqlite3.connect(db_path)
 

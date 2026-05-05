@@ -142,6 +142,10 @@ export interface TotalsDisplayProps {
 export interface HeaderProps {
   /** Number of runs */
   runCount: number;
+  /** Clear session handler */
+  onClearSession: () => void;
+  /** Change department handler */
+  onChangeDepartment: () => void;
 }
 
 /**

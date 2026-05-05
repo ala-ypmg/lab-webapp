@@ -1,86 +1,126 @@
 /**
- * T03 — Page 1: Case type selection
+ * T14 — Page 3: Notes and verification
  *
- * Five checkboxes. Live count badge. "Next" blocked when nothing is selected.
+ * - Free-form session notes textarea
+ * - Yes/No accessioning confirmation (neither pre-selected)
+ * - Advisory warning banner when "No" is selected
  */
+import { useState } from 'react';
+import { useSubmitKey } from '../contexts/SubmitKeyContext.ts';
+import { useShake } from '../hooks/useShake.ts';
 import {
   Box,
   Typography,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
-  Chip,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Alert,
   Paper,
+  FormHelperText,
 } from '@mui/material';
-import type { SectionKey } from '../types/index.ts';
-import { useSubmitKey } from '../contexts/SubmitKeyContext.ts';
-import { useShake } from '../hooks/useShake.ts';
+import type { AccessionedValue } from '../types/index.ts';
 
-const CASE_TYPES: { key: SectionKey; label: string }[] = [
-  { key: 'client_requests', label: 'Client Requests' },
-  { key: 'bone_marrow',     label: 'Bakersfield Bone Marrow Cases' },
-  { key: 'frozen_section',  label: 'Frozen Section for Intraoperative Consultation' },
-  { key: 'stat_cases',      label: 'STAT Cases' },
-  { key: 'held_cases',      label: 'Held Cases' },
-];
-
-interface Page1Props {
-  selectedTypes: Set<SectionKey>;
-  onToggle: (key: SectionKey) => void;
-  showValidationError: boolean;
+interface Page3Props {
+  notes: string;
+  onNotesChange: (notes: string) => void;
+  notesError?: string;
+  accessioned: AccessionedValue;
+  onAccessionedChange: (value: AccessionedValue) => void;
+  accessionedError?: string;
 }
 
-export default function Page1({ selectedTypes, onToggle, showValidationError }: Page1Props) {
-  const count = selectedTypes.size;
+export default function Page3({
+  notes,
+  onNotesChange,
+  notesError,
+  accessioned,
+  onAccessionedChange,
+  accessionedError,
+}: Page3Props) {
+  const [phiBannerDismissed, setPhiBannerDismissed] = useState(false);
   const submitKey = useSubmitKey();
-  const errorShakeClass = useShake(showValidationError && count === 0, submitKey);
+  const notesShakeClass = useShake(!!notesError, submitKey);
+  const accessionedShakeClass = useShake(!!accessionedError, submitKey);
 
   return (
-    <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, py: 3 }}>
+    <Box sx={{ maxWidth: 700, mx: 'auto', px: 2, py: 3 }}>
       <Typography variant="h5" fontWeight={700} gutterBottom>
-        Select Case Types
-      </Typography>
-      <Typography variant="body2" color="text.secondary" mb={3}>
-        Select all case types present in this session. Only selected types will appear on the next page.
+        Notes &amp; Verification
       </Typography>
 
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <FormGroup>
-          {CASE_TYPES.map(({ key, label }) => (
-            <FormControlLabel
-              key={key}
-              control={
-                <Checkbox
-                  checked={selectedTypes.has(key)}
-                  onChange={() => onToggle(key)}
-                  size="medium"
-                />
-              }
-              label={<Typography variant="body1">{label}</Typography>}
-              sx={{ py: 0.5 }}
-            />
-          ))}
-        </FormGroup>
+      {/* Session notes */}
+      <Paper variant="outlined" sx={{ p: 2.5, mb: 3 }}>
+        <Typography variant="subtitle1" gutterBottom>
+          Session notes
+        </Typography>
+        {!phiBannerDismissed && (
+          <Alert severity="info" onClose={() => setPhiBannerDismissed(true)} sx={{ mb: 1.5 }}>
+            Do not include case numbers and other PHI in your notes!
+          </Alert>
+        )}
+        <div className={notesShakeClass}>
+          <TextField
+            multiline
+            minRows={4}
+            fullWidth
+            value={notes}
+            onChange={(e) => onNotesChange(e.target.value)}
+            placeholder="Discrepancies, exceptions, deferred cases, or anything not captured above..."
+            size="small"
+            error={!!notesError}
+            helperText={notesError}
+          />
+        </div>
       </Paper>
 
-      {count > 0 && (
-        <Box mt={2} display="flex" alignItems="center" gap={1}>
-          <Chip
-            label={`${count} type${count !== 1 ? 's' : ''} selected`}
-            color="primary"
-            size="small"
-            variant="outlined"
-          />
-        </Box>
-      )}
+      {/* Accessioning confirmation */}
+      <Paper variant="outlined" sx={{ p: 2.5 }}>
+        <Typography variant="subtitle1" gutterBottom>
+          All cases received have been accessioned?
+        </Typography>
+        <ToggleButtonGroup
+          value={accessioned}
+          exclusive
+          onChange={(_e, next: AccessionedValue) => {
+            if (next !== null) onAccessionedChange(next);
+          }}
+          sx={{ mb: 1 }}
+        >
+          <ToggleButton
+            value="yes"
+            sx={{
+              px: 3,
+              fontWeight: 600,
+              '&.Mui-selected': { bgcolor: 'success.light', color: 'success.contrastText' },
+            }}
+          >
+            Yes
+          </ToggleButton>
+          <ToggleButton
+            value="no"
+            sx={{
+              px: 3,
+              fontWeight: 600,
+              '&.Mui-selected': { bgcolor: 'error.light', color: 'error.contrastText' },
+            }}
+          >
+            No
+          </ToggleButton>
+        </ToggleButtonGroup>
 
-      {showValidationError && count === 0 && (
-        <div className={errorShakeClass}>
-          <Typography color="error" variant="body2" mt={2}>
-            Please select at least one case type to continue.
-          </Typography>
-        </div>
-      )}
+        {accessionedError && (
+          <div className={accessionedShakeClass}>
+            <FormHelperText error>{accessionedError}</FormHelperText>
+          </div>
+        )}
+
+        {accessioned === 'no' && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            Please indicate how many specimens are not yet accessioned. Do not include case numbers
+            and other PHI.
+          </Alert>
+        )}
+      </Paper>
     </Box>
   );
 }

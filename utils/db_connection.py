@@ -1,6 +1,6 @@
 """
 Database connection utilities for Azure SQL and SQLite
-Supports dual database architecture (users db and ezeos db)
+Supports dual database architecture (users db and main db)
 """
 
 import os
@@ -28,6 +28,7 @@ _PERMANENT_ERROR_CODES = {
     40615,  # IP not allowed by firewall
     18456,  # Login failed (bad credentials)
     40914,  # Cannot open server - tenant not found
+    40532,  # Cannot open server requested by login (username missing @server suffix)
 }
 
 # Maximum retries for *transient* Azure SQL errors (e.g. 40613 – db not currently available).
@@ -46,13 +47,15 @@ USE_AZURE_SQL = os.environ.get('USE_AZURE_SQL', 'false').lower() == 'true'
 
 # Table to database mapping
 # Tables in 'users' database: users, admin_users
-# Tables in 'ezeos' database: user_sessions, form_submissions, audit_log
+# Tables in 'main' database: user_sessions, form_submissions, audit_log, accessioning_submissions, case_number_prefixes
 TABLE_DATABASE_MAP = {
     'users': 'users',
     'admin_users': 'users',
-    'user_sessions': 'ezeos',
-    'form_submissions': 'ezeos',
-    'audit_log': 'ezeos',
+    'user_sessions': 'main',
+    'form_submissions': 'main',
+    'audit_log': 'main',
+    'accessioning_submissions': 'main',
+    'case_number_prefixes': 'main',
 }
 
 
@@ -64,9 +67,9 @@ def get_database_for_table(table_name):
         table_name: Name of the table being accessed
         
     Returns:
-        'users' or 'ezeos' database name
+        'users' or 'main' database name
     """
-    return TABLE_DATABASE_MAP.get(table_name, 'ezeos')
+    return TABLE_DATABASE_MAP.get(table_name, 'main')
 
 
 def get_azure_connection_params(database='users'):
@@ -74,20 +77,28 @@ def get_azure_connection_params(database='users'):
     Get Azure SQL connection parameters from environment variables
     
     Args:
-        database: Which database to connect to ('users' or 'ezeos')
-        
+        database: Which database to connect to ('users' or 'main')
+
     Returns:
         Dictionary of connection parameters for pymssql
     """
     server = os.environ.get('AZURE_SQL_SERVER', 'ezeos.database.windows.net')
     username = os.environ.get('AZURE_SQL_USERNAME', 'ala')
     password = os.environ.get('AZURE_SQL_PASSWORD', '')
-    
+
+    # Azure SQL requires SQL logins in `user@shortservername` form.
+    # Always normalise: strip any existing @domain suffix (e.g. @ypmg.com set in
+    # the env var) and re-append the correct short server name to avoid error 40532
+    # where pymssql misreads the domain part as the target server.
+    server_short = server.split('.', 1)[0]
+    base_username = username.split('@')[0]
+    username = f'{base_username}@{server_short}'
+
     # Select database based on parameter
     if database == 'users':
         db_name = os.environ.get('AZURE_SQL_DATABASE_USERS', 'users')
     else:
-        db_name = os.environ.get('AZURE_SQL_DATABASE_EZEOS', 'ezeos')
+        db_name = os.environ.get('AZURE_SQL_DATABASE_MAIN', 'main')
     
     return {
         'server': server,
@@ -141,7 +152,7 @@ def get_connection(database='users', for_table=None):
     - Permanent errors (firewall, bad credentials) are never retried.
 
     Args:
-        database: Which database to connect to ('users' or 'ezeos')
+        database: Which database to connect to ('users' or 'main')
         for_table: Optional table name to auto-detect database
 
     Returns:
@@ -163,6 +174,10 @@ def get_connection(database='users', for_table=None):
             )
 
         params = get_azure_connection_params(database)
+        logger.info(
+            f"Azure SQL connecting: server={params['server']} "
+            f"database={params['database']} user={params['user']}"
+        )
         last_exc = None
 
         # 40613 (Serverless auto-pause) needs its own retry loop with a longer
@@ -242,9 +257,9 @@ def get_users_connection():
     return get_connection(database='users')
 
 
-def get_ezeos_connection():
-    """Get connection to ezeos database"""
-    return get_connection(database='ezeos')
+def get_main_connection():
+    """Get connection to main database"""
+    return get_connection(database='main')
 
 
 def execute_with_connection(database='users', for_table=None):
@@ -314,21 +329,37 @@ def row_to_dict(cursor, row):
 def verify_connection(database='users'):
     """
     Verify database connection is working
-    
+
     Args:
-        database: Which database to verify ('users' or 'ezeos')
+        database: Which database to verify ('users' or 'main')
         
     Returns:
         True if connection successful, False otherwise
     """
     try:
+        # Resolve the actual database name from env vars so the log reflects
+        # what we're really connecting to (catches AZURE_SQL_DATABASE_MAIN
+        # misconfiguration where the logical key says 'ezeos' but the real DB
+        # is something else, e.g. 'main').
+        if USE_AZURE_SQL:
+            params = get_azure_connection_params(database)
+            actual_db = params['database']
+        else:
+            actual_db = database
         conn = get_connection(database=database)
         cursor = conn.cursor()
         cursor.execute("SELECT 1")
         result = cursor.fetchone()
         conn.close()
         if result and result[0] == 1:
-            logger.info(f"Database connection verified: {database}")
+            if actual_db != database:
+                logger.warning(
+                    f"Database connection verified for logical key '{database}' "
+                    f"but actual database name is '{actual_db}'. "
+                    f"Check AZURE_SQL_DATABASE_{database.upper()} env var."
+                )
+            else:
+                logger.info(f"Database connection verified: {database}")
             return True
         return False
     except Exception as e:
@@ -347,7 +378,7 @@ def verify_all_connections():
     
     if USE_AZURE_SQL:
         results['users'] = verify_connection('users')
-        results['ezeos'] = verify_connection('ezeos')
+        results['main'] = verify_connection('main')
     else:
         # For SQLite, we only need to verify once
         results['sqlite'] = verify_connection()
@@ -415,8 +446,8 @@ class DatabaseConfig:
         self.azure_server = os.environ.get('AZURE_SQL_SERVER', 'ezeos.database.windows.net')
         self.azure_username = os.environ.get('AZURE_SQL_USERNAME', 'ala')
         self.users_database = os.environ.get('AZURE_SQL_DATABASE_USERS', 'users')
-        self.ezeos_database = os.environ.get('AZURE_SQL_DATABASE_EZEOS', 'ezeos')
-    
+        self.main_database = os.environ.get('AZURE_SQL_DATABASE_MAIN', 'main')
+
     def to_dict(self):
         """Return configuration as dictionary (excluding password)"""
         return {
@@ -424,7 +455,7 @@ class DatabaseConfig:
             'azure_server': self.azure_server,
             'azure_username': self.azure_username,
             'users_database': self.users_database,
-            'ezeos_database': self.ezeos_database,
+            'main_database': self.main_database,
         }
 
 

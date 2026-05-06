@@ -5,22 +5,79 @@
     box-sizing: border-box;
 }
 
+/* ── Playfair Display — self-hosted variable font ── */
+@font-face {
+    font-family: 'Playfair Display';
+    src: url('../fonts/PlayfairDisplay-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Playfair Display';
+    src: url('../fonts/PlayfairDisplay-Italic-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: italic;
+    font-display: swap;
+}
+
 :root {
+    /* Colors */
     --primary-color: #17406a;
-    --secondary-color: #6c757d;
-    --success-color: #28a745;
-    --danger-color: #dc3545;
-    --warning-color: #ffc107;
+    --primary-light: #1e5183;
+    --primary-dark: #102d4a;
+    --accent-color: #e8912c;
+    --accent-light: #f0a94d;
+    --secondary-color: #5a6a7a;
+    --success-color: #2e7d32;
+    --danger-color: #d32f2f;
+    --warning-color: #ed6c02;
     --info-color: #17a2b8;
-    --light-color: #f8f9fa;
-    --dark-color: #343a40;
-    --border-color: #dee2e6;
-    --text-color: #212529;
+    --light-color: #f5f7fa;
+    --dark-color: #102d4a;
+    --border-color: #dde3ea;
+    --text-color: #1a2332;
     --bg-color: #ffffff;
+
+    /* Typography */
+    --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    --font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    /* Type scale */
+    --text-xs:   12px;
+    --text-sm:   13px;
+    --text-base: 14px;
+    --text-md:   16px;
+    --text-lg:   20px;
+    --text-xl:   24px;
+    --text-2xl:  32px;
+
+    /* Weights */
+    --font-regular:  400;
+    --font-medium:   500;
+    --font-semibold: 600;
+    --font-bold:     700;
+
+    /* Spacing */
+    --space-1:  4px;
+    --space-2:  8px;
+    --space-3:  12px;
+    --space-4:  16px;
+    --space-6:  24px;
+    --space-8:  32px;
+
+    /* Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+
+    /* Shadows */
+    --shadow-card: 0 4px 6px rgba(0,0,0,0.10);
+    --shadow-nav:  0 2px 4px rgba(0,0,0,0.10);
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: var(--font-body);
     line-height: 1.6;
     color: var(--text-color);
     background-color: #f5f7fa;
@@ -31,7 +88,7 @@ body {
 
 /* Header Styles */
 .header {
-    background-color: var(--dark-color);
+    background-color: var(--primary-color);
     color: white;
     padding: 1rem 0;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -44,6 +101,7 @@ body {
 }
 
 .logo {
+    font-family: var(--font-display);
     font-size: 1.5rem;
     font-weight: 700;
     margin: 0;
@@ -150,6 +208,8 @@ body {
 .form-card h2 {
     margin-bottom: 0.5rem;
     color: var(--dark-color);
+    font-family: var(--font-display);
+    font-weight: 700;
 }
 
 .subtitle {
@@ -251,6 +311,8 @@ body {
     margin-bottom: 1rem;
     color: var(--dark-color);
     font-size: 1.25rem;
+    font-family: var(--font-display);
+    font-weight: 600;
 }
 
 /* Buttons */
@@ -258,7 +320,8 @@ body {
     display: inline-block;
     padding: 0.5rem 1rem;
     font-size: 1rem;
-    font-weight: 400;
+    font-weight: 500;
+    font-family: var(--font-body);
     text-align: center;
     text-decoration: none;
     border: 1px solid transparent;
@@ -274,8 +337,8 @@ body {
 }
 
 .btn-primary:hover {
-    background-color: #0f2d4a;
-    border-color: #0f2d4a;
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
 }
 
 .btn-secondary {
@@ -285,8 +348,8 @@ body {
 }
 
 .btn-secondary:hover {
-    background-color: #5a6268;
-    border-color: #545b62;
+    background-color: #4a5a6a;
+    border-color: #4a5a6a;
 }
 
 .btn-success {
@@ -446,6 +509,8 @@ body {
 .admin-container h2 {
     margin-bottom: 1.5rem;
     color: var(--dark-color);
+    font-family: var(--font-display);
+    font-weight: 700;
 }
 
 .admin-actions {
@@ -527,7 +592,7 @@ body {
 }
 
 .data-table tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--light-color);
 }
 
 /* Pagination */
@@ -631,7 +696,7 @@ body {
 
 /* Footer */
 .footer {
-    background-color: var(--dark-color);
+    background-color: var(--primary-dark);
     color: #adb5bd;
     padding: 1.5rem 0;
     margin-top: auto;

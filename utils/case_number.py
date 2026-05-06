@@ -67,3 +67,12 @@ def validate_case_number(value: str) -> tuple[bool, str]:
         return (False, f"Suffix must be exactly 5 digits (got '{suffix_part}' — {len(suffix_part)} digit(s))")
 
     return (True, normalized)
+
+
+# Unanchored search pattern for detecting a case number anywhere in free text.
+_SCAN = re.compile(r'\d{2}[A-Za-z]{2,3}-\d{5}', re.IGNORECASE)
+
+
+def contains_case_number(text: str) -> bool:
+    """Return True if text contains any substring matching the case number format."""
+    return bool(_SCAN.search(text)) if isinstance(text, str) else False

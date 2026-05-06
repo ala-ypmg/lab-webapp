@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IDWIW Permit — Bureau of Unilateral Decisions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #c8b89a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      font-family: 'Courier Prime', 'Courier New', monospace;
+    }
+
+    .page {
+      background: #f5ead8;
+      max-width: 680px;
+      width: 100%;
+      padding: 8px;
+      border: 2px solid #8b6f47;
+      box-shadow: 4px 4px 0 #7a5e38, 8px 8px 0 rgba(0,0,0,0.15);
+      position: relative;
+    }
+
+    .inner {
+      border: 1px solid #a8845c;
+      padding: 2rem 2.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Corner ornaments */
+    .inner::before, .inner::after {
+      content: '✦';
+      position: absolute;
+      font-size: 14px;
+      color: #8b6f47;
+      opacity: 0.6;
+    }
+    .inner::before { top: 8px; left: 10px; }
+    .inner::after  { bottom: 8px; right: 10px; }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #a8845c;
+    }
+
+    .agency-line {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .seal {
+      font-size: 18px;
+      opacity: 0.6;
+      color: #6b4f2c;
+    }
+
+    .agency-name {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      color: #6b4f2c;
+      font-family: 'Courier Prime', monospace;
+    }
+
+    .dept-line {
+      font-size: 10px;
+      color: #8b6f47;
+      margin-bottom: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    .permit-title {
+      font-family: 'Special Elite', serif;
+      font-size: 26px;
+      color: #3d2b14;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    .form-number {
+      font-size: 10px;
+      color: #8b6f47;
+      letter-spacing: 0.04em;
+    }
+
+    /* Fields grid */
+    .fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 24px;
+      margin-bottom: 1.25rem;
+      font-size: 12px;
+    }
+
+    .field-label {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: #8b6f47;
+      margin-bottom: 2px;
+    }
+
+    .field-value {
+      border-bottom: 1px solid #a8845c;
+      padding-bottom: 3px;
+      color: #2c1a08;
+    }
+
+    /* Auth list */
+    .auth-section {
+      margin-bottom: 1.25rem;
+    }
+
+    .auth-header {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: #8b6f47;
+      margin-bottom: 8px;
+    }
+
+    .auth-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px 20px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #2c1a08;
+    }
+
+    .auth-item::before {
+      content: '+  ';
+      color: #5a7a3a;
+      font-weight: 700;
+    }
+
+    code {
+      font-family: 'Courier Prime', monospace;
+      background: rgba(139, 111, 71, 0.12);
+      padding: 0 3px;
+      border-radius: 2px;
+      font-size: 11px;
+    }
+
+    /* Restrictions box */
+    .restrictions {
+      background: rgba(139, 111, 71, 0.08);
+      border: 1px solid #a8845c;
+      padding: 6px 12px;
+      margin-bottom: 1.25rem;
+      font-size: 11px;
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+    }
+
+    .restrictions-label {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: #8b6f47;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .restrictions-value {
+      color: #3d2b14;
+      font-style: italic;
+    }
+
+    /* Signatures */
+    .signatures {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 1rem;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .sig-name {
+      border-bottom: 1px solid #a8845c;
+      padding-bottom: 3px;
+      margin-bottom: 3px;
+      font-style: italic;
+      color: #3d2b14;
+    }
+
+    .sig-title {
+      font-size: 9px;
+      color: #8b6f47;
+      letter-spacing: 0.05em;
+    }
+
+    /* Fine print */
+    .fine-print {
+      font-size: 9px;
+      color: #8b6f47;
+      line-height: 1.7;
+      border-top: 1px solid #a8845c;
+      padding-top: 8px;
+    }
+
+    /* The stamp */
+    .stamp {
+      position: absolute;
+      top: 44%;
+      left: 57%;
+      transform: translate(-50%, -50%) rotate(-19deg);
+      border: 4px solid #b03030;
+      color: #b03030;
+      padding: 5px 20px;
+      font-family: 'Special Elite', serif;
+      font-size: 32px;
+      letter-spacing: 0.14em;
+      opacity: 0.22;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    
+
+    @media print {
+      body { background: white; padding: 0; }
+      .page { box-shadow: none; }
+      .actions { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <div class="inner">
+
+    <div class="header">
+      <div class="agency-line">
+        <span class="seal">&#9873;</span>
+        <span class="agency-name">BUREAU OF UNILATERAL DECISIONS</span>
+        <span class="seal">&#9873;</span>
+      </div>
+      <div class="dept-line">Dept. of Vibe Coding &bull; Est. &ldquo;1996&rdquo; &bull; Jurisdiction: This Entire Codebase</div>
+      <div class="permit-title">PERMIT: I DO WHAT I WANT</div>
+      <div class="form-number">Form IDWIW-&infin; &nbsp;&bull;&nbsp; Non-Revocable &nbsp;&bull;&nbsp; See Reverse for Terms (There Is No Reverse)</div>
+    </div>
+
+    <div class="fields">
+      <div>
+        <div class="field-label">BEARER</div>
+        <div class="field-value">Gale La</div>
+      </div>
+      <div>
+        <div class="field-label">PERMIT NO.</div>
+        <div class="field-value">IDWIW-2026-&infin;-NGL</div>
+      </div>
+      <div>
+        <div class="field-label">DATE ISSUED</div>
+        <div class="field-value">March 31, 1996</div>
+      </div>
+      <div>
+        <div class="field-label">EXPIRATION</div>
+        <div class="field-value">Never ever lol</div>
+      </div>
+    </div>
+
+    <div class="auth-section">
+      <div class="auth-header">THE BEARER IS HEREBY AUTHORIZED, WITHOUT APOLOGY OR EXPLANATION, TO:</div>
+      <div class="auth-grid">
+        <div class="auth-item">name variables <code>x</code>, <code>temp2</code>, <code>finalFinalFR</code></div>
+        <div class="auth-item">skip unit tests</div>
+        <div class="auth-item">skip pen tests</div>
+        <div class="auth-item">leave TODO comments indefinitely</div>
+        <div class="auth-item">hardcode magic numbers</div>
+        <div class="auth-item">write &ldquo;temporary&rdquo; fixes that outlive the sun</div>
+        <div class="auth-item">copy-paste from Stack Overflow</div>
+        <div class="auth-item">push directly to main</div>
+        <div class="auth-item">use <code>any</code> in TypeScript</div>
+        <div class="auth-item">commit with message &ldquo;fix&rdquo; or &ldquo;pp poopoo&rdquo;</div>
+        <div class="auth-item">scream</div>
+        <div class="auth-item">rebuke all linter warnings</div>
+        <div class="auth-item">write a regex and refuse to explain it</div>
+      </div>
+    </div>
+
+    <div class="restrictions">
+      <span class="restrictions-label">RESTRICTIONS:</span>
+      <span class="restrictions-value">None.</span>
+    </div>
+
+    <div class="signatures">
+        <div>
+        <div class="sig-name">Your mom</div>
+        <div class="sig-title">Issuing Authority</div>
+         </div>
+    </div>
+
+    </div>
+
+    <div class="fine-print">
+      This permit supersedes all linting rules, style guides, code review comments, architecture diagrams, and the emotional pleas of your coworkers. Bearer assumes no liability. Issuer assumes no liability. All liability has been uniformly distributed across the void and may not be retrieved. This permit is self-renewing, self-approving, and has been counter-signed by the concept of &ldquo;I&rsquo;ll fix it later.&rdquo; Not valid in environments with actual accountability. Valid in all other environments, including but not limited to: production, staging, that weird branch that mysteriously appeared overnight, and the entire frontend. Any challenge to this permit constitutes a logical impossibility, as the bearer&rsquo;s authority is inherent, non-contestable, and predates the universe. You have something on your shirt.
+    </div>
+
+    <div class="stamp">APPROVED</div>
+</div>
+
+</body>
+</html>

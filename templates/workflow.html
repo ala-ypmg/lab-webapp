@@ -2,173 +2,1061 @@
 
 {% block title %}Workflow Data - {{ app_name }}{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ── Status Board Layout ── */
+.workflow-board {
+    max-width: 600px;
+    margin: 0 auto;
+    padding-bottom: 100px;
+}
+
+/* ── Board Header (progress bar strip) ── */
+.board-header {
+    background: var(--primary-color);
+    color: #fff;
+    border-radius: 12px 12px 0 0;
+    padding: 20px 20px 16px;
+    margin-bottom: 0;
+}
+
+.board-meta {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+    margin-bottom: 4px;
+}
+
+.board-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+}
+
+.board-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+}
+
+.btn-mark-all {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.btn-mark-all:hover { background: rgba(255,255,255,0.22); }
+
+/* ── Progress bar ── */
+.progress-wrap {
+    margin-top: 14px;
+}
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0.85;
+    margin-bottom: 6px;
+}
+.progress-track {
+    height: 6px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: var(--accent-color);
+    transition: width 0.35s ease;
+}
+.progress-fill.complete { background: #7ed4a0; }
+
+/* ── Area Cards ── */
+.area-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 0 0;
+}
+
+.area-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--border-color);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+.area-card[data-status="done"]    { border-left-color: var(--success-color); border-color: var(--success-color); }
+.area-card[data-status="pending"] { border-left-color: var(--accent-color);  border-color: var(--accent-color); }
+.area-card[data-status="na"]      { border-left-color: var(--secondary-color); }
+.area-card[data-status="mixed"]   { border-left-color: var(--accent-color); }
+
+.card-head {
+    padding: 13px 16px 11px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--border-color);
+    transition: background 0.2s;
+}
+.status-dot[data-status="done"]    { background: var(--success-color); }
+.status-dot[data-status="pending"] { background: var(--accent-color); }
+.status-dot[data-status="na"]      { background: var(--secondary-color); }
+.status-dot[data-status="mixed"]   { background: var(--accent-color); }
+
+.card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-color);
+    flex: 1;
+    margin: 0;
+}
+
+.card-hint {
+    font-size: 12px;
+    color: var(--secondary-color);
+    margin-top: 2px;
+}
+
+.card-body {
+    padding: 2px 16px 13px;
+    background: #fff;
+    transition: background 0.2s;
+}
+.area-card[data-status="done"]    .card-body { background: #f0faf1; }
+.area-card[data-status="pending"] .card-body { background: #fdf5e8; }
+.area-card[data-status="na"]      .card-body { background: #f5f7fa; }
+.area-card[data-status="mixed"]   .card-body { background: #fdf5e8; }
+
+/* ── Status Pills ── */
+.pill-group {
+    display: inline-flex;
+    background: #f5f7fa;
+    border: 1px solid var(--border-color);
+    border-radius: 9999px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.pill-btn {
+    border: none;
+    background: transparent;
+    color: var(--secondary-color);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    min-width: 56px;
+    line-height: 1;
+}
+.pill-btn:hover { background: rgba(0,0,0,0.06); }
+.pill-btn.active-done    { background: var(--success-color); color: #fff; }
+.pill-btn.active-pending { background: var(--accent-color);  color: #fff; }
+.pill-btn.active-na      { background: var(--secondary-color); color: #fff; }
+
+/* ── Task row (sub-item inside a card) ── */
+.task-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-top: 1px solid rgba(221,227,234,0.5);
+    gap: 12px;
+}
+.task-row:first-child { border-top: none; }
+
+.task-label {
+    font-size: 13.5px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+/* ── Single-status row (no sub-tasks) ── */
+.single-status {
+    padding-top: 6px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ── Pending sources ── */
+.pending-sources {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(232,145,44,0.3);
+}
+.pending-sources.visible { display: block; }
+
+.sources-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #a55a00;
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.source-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.source-chip {
+    background: #fff;
+    color: var(--secondary-color);
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.source-chip.active {
+    background: var(--accent-color);
+    color: #fff;
+    border-color: var(--accent-color);
+}
+
+/* ── Final Block Time ── */
+.time-section {
+    padding: 16px 0 4px;
+}
+
+.time-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--secondary-color);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.optional-badge {
+    font-size: 10px;
+    color: var(--secondary-color);
+    font-weight: 500;
+    background: #eef1f4;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* Clock-style time display */
+.time-display-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    text-align: left;
+    transition: border-color 0.15s;
+}
+.time-display-btn:hover { border-color: var(--primary-color); }
+
+.time-clock-glyph svg { display: block; }
+
+.time-value {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--primary-dark);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    flex: 1;
+}
+.time-value.placeholder { color: #b0bac4; }
+
+.time-hint {
+    font-size: 11px;
+    color: var(--secondary-color);
+    margin-top: 4px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.time-edit-badge {
+    font-size: 11px;
+    color: var(--primary-color);
+    font-weight: 600;
+    background: #e8eef5;
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.time-picker-panel {
+    display: none;
+    margin-top: 10px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+}
+.time-picker-panel.open { display: block; }
+
+.clock-display {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 14px;
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--primary-dark);
+    letter-spacing: -0.03em;
+    line-height: 1;
+}
+.clock-seg {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+}
+.clock-seg:hover { background: #eef1f4; }
+.clock-seg.active { background: #e8eef5; color: var(--primary-color); }
+.clock-colon { color: #b0bac4; display: flex; align-items: center; }
+
+.clock-face-wrap {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+}
+.clock-face-bg {
+    position: absolute;
+    inset: 0;
+    background: #f5f7fa;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+}
+.clock-face-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+.clock-num-btn {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    transition: color 0.12s;
+}
+.clock-num-btn.selected { color: #fff; }
+
+.clock-foot {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--secondary-color);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.clock-switch-btn {
+    background: transparent;
+    border: none;
+    font: inherit;
+    color: var(--primary-color);
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* ── Workflow areas label strip ── */
+.areas-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 6px;
+}
+.areas-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--secondary-color);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.areas-subtitle {
+    font-size: 12px;
+    color: var(--secondary-color);
+    margin-top: 2px;
+}
+
+/* ── Sticky footer ── */
+.workflow-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255,255,255,0.97);
+    border-top: 1px solid var(--border-color);
+    padding: 10px 20px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    z-index: 100;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+}
+
+/* Hidden native inputs (used by WTForms) */
+.hidden-radios { display: none !important; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="form-container">
-    <div class="form-card">
-        <h2>Lab Workflow Entry - Workflow Data</h2>
-        {% if session.department == 'Checkout' %}
-        <p class="subtitle">Page 3 of 4</p>
-        {% else %}
-        <p class="subtitle">Page 2 of 3</p>
-        {% endif %}
-        
-        <form method="POST" action="{{ url_for('page2.workflow') }}" novalidate>
-            {{ form.hidden_tag() }}
-            
-            <div class="form-section">
-                <h3>Time Information</h3>
-                <div class="form-group">
-                    {{ form.final_block_time.label(class="form-label") }}
-                    {{ form.final_block_time(class="form-control" + (" is-invalid" if form.final_block_time.errors else ""), placeholder="HH:MM (24-hour format)") }}
-                    {% if form.final_block_time.errors %}
-                        <div class="invalid-feedback">
-                            {% for error in form.final_block_time.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    <small class="form-text">Optional - Enter time in 24-hour format (e.g., 14:30)</small>
+<div class="workflow-board">
+    <form method="POST" action="{{ url_for('page2.workflow') }}" novalidate id="workflow-form">
+        {{ form.hidden_tag() }}
+
+        {# Hidden radio inputs — controlled by JS status pills #}
+        <div class="hidden-radios" aria-hidden="true">
+            {% for subfield in form.baked_ihcs_pt_link %}{{ subfield() }}{% endfor %}
+            {% for subfield in form.ihcs_in_pt_link %}{{ subfield() }}{% endfor %}
+            {% for subfield in form.non_baked_ihc %}{{ subfield() }}{% endfor %}
+            {% for subfield in form.ihcs_in_buffer_wash %}{{ subfield() }}{% endfor %}
+            {% for subfield in form.pathologist_requests_status %}{{ subfield() }}{% endfor %}
+            {% for subfield in form.in_progress_her2 %}{{ subfield() }}{% endfor %}
+            {% for subfield in form.upfront_special_stains %}{{ subfield() }}{% endfor %}
+            {% for subfield in form.peloris_maintenance %}{{ subfield() }}{% endfor %}
+            {{ form.request_source_email(id="src_email") }}
+            {{ form.request_source_orchard(id="src_orchard") }}
+            {{ form.request_source_send_out(id="src_sendout") }}
+        </div>
+        {# Hidden time input #}
+        <div class="hidden-radios" aria-hidden="true">
+            {{ form.final_block_time(id="hidden_time") }}
+        </div>
+
+        {# ── Board header ── #}
+        <div class="board-header">
+            <div class="board-meta">
+                Lab Workflow ·
+                {% if session.department == 'Checkout' %}Page 3 of 4{% else %}Page 2 of 3{% endif %}
+            </div>
+            <div class="board-actions-row">
+                <h2 class="board-title">Histology Workflow</h2>
+                <button type="button" class="btn-mark-all" id="mark-all-done">Mark all done</button>
+            </div>
+            <div class="progress-wrap">
+                <div class="progress-label">
+                    <span id="progress-text">0 of 6 areas logged</span>
+                    <span id="progress-pct">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
                 </div>
             </div>
-            
-            <div class="form-section">
-                <h3>Workflow Status</h3>
+        </div>
 
-                <div class="form-subsection">
-                    <h4>PT Link</h4>
-                    <div class="checkbox-grid">
-                        <div class="form-group checkbox-group">
-                            {{ form.baked_ihcs_pt_link(class="form-checkbox") }}
-                            {{ form.baked_ihcs_pt_link.label(class="checkbox-label") }}
-                        </div>
-                        <div class="form-group checkbox-group">
-                            {{ form.ihcs_in_pt_link(class="form-checkbox") }}
-                            {{ form.ihcs_in_pt_link.label(class="checkbox-label") }}
-                        </div>
-                    </div>
+        <div style="padding: 0 4px;">
+
+            {# ── Final Block Time ── #}
+            <div class="time-section">
+                <div class="time-label">
+                    Final Block Time
+                    <span class="optional-badge">Optional</span>
                 </div>
-
-                <div class="form-subsection">
-                    <h4>DAKO</h4>
-                    <div class="checkbox-grid">
-                        <div class="form-group checkbox-group">
-                            {{ form.non_baked_ihc(class="form-checkbox") }}
-                            {{ form.non_baked_ihc.label(class="checkbox-label") }}
-                        </div>
-                        <div class="form-group checkbox-group">
-                            {{ form.ihcs_in_buffer_wash(class="form-checkbox") }}
-                            {{ form.ihcs_in_buffer_wash.label(class="checkbox-label") }}
-                        </div>
+                <button type="button" class="time-display-btn" id="time-toggle-btn"
+                    aria-expanded="false" aria-controls="clock-panel">
+                    <span class="time-clock-glyph" id="clock-glyph-wrap">
+                        <svg id="clock-glyph-svg" width="40" height="40" viewBox="0 0 40 40">
+                            <circle cx="20" cy="20" r="17" fill="#f5f7fa" stroke="#17406a" stroke-width="1.5"/>
+                            <line x1="20" y1="6" x2="20" y2="9" stroke="#17406a" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="20" y1="6" x2="20" y2="9" stroke="#17406a" stroke-width="1.5" stroke-linecap="round" transform="rotate(90 20 20)"/>
+                            <line x1="20" y1="6" x2="20" y2="9" stroke="#17406a" stroke-width="1.5" stroke-linecap="round" transform="rotate(180 20 20)"/>
+                            <line x1="20" y1="6" x2="20" y2="9" stroke="#17406a" stroke-width="1.5" stroke-linecap="round" transform="rotate(270 20 20)"/>
+                            <line id="clock-hour-hand" x1="20" y1="20" x2="20" y2="11" stroke="#102d4a" stroke-width="2" stroke-linecap="round" transform="rotate(0 20 20)"/>
+                            <line id="clock-min-hand"  x1="20" y1="20" x2="20" y2="8"  stroke="#e8912c" stroke-width="1.8" stroke-linecap="round" transform="rotate(0 20 20)"/>
+                            <circle cx="20" cy="20" r="1.6" fill="#102d4a"/>
+                        </svg>
+                    </span>
+                    <div style="flex:1;">
+                        <div class="time-value placeholder" id="time-display">— : —</div>
+                        <div class="time-hint" id="time-hint">Tap to set time</div>
                     </div>
-                </div>
+                    <span class="time-edit-badge" id="time-edit-badge">Edit</span>
+                </button>
 
-                <div class="form-subsection">
-                    <h4>Pathologist Requests</h4>
-                    <div class="form-group">
-                        <div class="radio-group">
-                            {% for subfield in form.pathologist_requests_status %}
-                                <div class="radio-item">
-                                    {{ subfield(class="form-radio", id="pathologist_requests_status_" + loop.index0|string) }}
-                                    {{ subfield.label(class="radio-label") }}
-                                </div>
-                            {% endfor %}
-                        </div>
+                {# Clock picker panel #}
+                <div class="time-picker-panel" id="clock-panel">
+                    <div class="clock-display">
+                        <button type="button" class="clock-seg active" id="seg-h">00</button>
+                        <span class="clock-colon">:</span>
+                        <button type="button" class="clock-seg" id="seg-m">00</button>
                     </div>
-                    <div id="request-sources" class="conditional-fields" style="display: none;">
-                        <p class="form-text">Select source(s) of pending request:</p>
-                        <div class="checkbox-grid">
-                            <div class="form-group checkbox-group">
-                                {{ form.request_source_email(class="form-checkbox") }}
-                                {{ form.request_source_email.label(class="checkbox-label") }}
-                            </div>
-                            <div class="form-group checkbox-group">
-                                {{ form.request_source_orchard(class="form-checkbox") }}
-                                {{ form.request_source_orchard.label(class="checkbox-label") }}
-                            </div>
-                            <div class="form-group checkbox-group">
-                                {{ form.request_source_send_out(class="form-checkbox") }}
-                                {{ form.request_source_send_out.label(class="checkbox-label") }}
-                            </div>
-                        </div>
+                    <div class="clock-face-wrap" id="clock-face-wrap">
+                        <div class="clock-face-bg"></div>
+                        <svg class="clock-face-svg" viewBox="0 0 200 200" id="clock-face-svg">
+                            <line id="cf-hand" x1="100" y1="100" x2="100" y2="30"
+                                stroke="#17406a" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="100" cy="100" r="3" fill="#17406a"/>
+                            <circle id="cf-tip" cx="100" cy="30" r="14" fill="#17406a"/>
+                        </svg>
+                        {# Number buttons injected by JS #}
                     </div>
-                </div>
-
-                <div class="form-subsection">
-                    <h4>HER2</h4>
-                    <div class="checkbox-grid">
-                        <div class="form-group checkbox-group">
-                            {{ form.in_progress_her2(class="form-checkbox") }}
-                            {{ form.in_progress_her2.label(class="checkbox-label") }}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-subsection">
-                    <h4>Special Stains</h4>
-                    <div class="form-group">
-                        {{ form.upfront_special_stains.label(class="form-label") }}
-                        <div class="radio-group">
-                            {% for subfield in form.upfront_special_stains %}
-                                <div class="radio-item">
-                                    {{ subfield(class="form-radio") }}
-                                    {{ subfield.label(class="radio-label") }}
-                                </div>
-                            {% endfor %}
-                        </div>
+                    <div class="clock-foot">
+                        <span id="clock-mode-label">Hour</span>
+                        <button type="button" class="clock-switch-btn" id="clock-switch-btn">Set minutes →</button>
                     </div>
                 </div>
             </div>
 
-            <div class="form-section">
-                <h3>Task Status</h3>
-
-                <div class="form-group">
-                    {{ form.peloris_maintenance.label(class="form-label") }}
-                    <div class="radio-group">
-                        {% for subfield in form.peloris_maintenance %}
-                            <div class="radio-item">
-                                {{ subfield(class="form-radio") }}
-                                {{ subfield.label(class="radio-label") }}
-                            </div>
-                        {% endfor %}
-                    </div>
+            {# ── Areas section ── #}
+            <div class="areas-header">
+                <div>
+                    <div class="areas-title">Workflow areas</div>
+                    <div class="areas-subtitle">Tap a status for each area</div>
                 </div>
             </div>
-            
-            <div class="form-actions">
-                <button type="submit" formaction="{{ url_for('page2.workflow_back') }}" formmethod="post" class="btn btn-secondary">Back</button>
+
+            <div class="area-cards" id="area-cards">
+
+                {# PT Link #}
+                <div class="area-card" data-status="open" id="card-pt">
+                    <div class="card-head">
+                        <span class="status-dot" data-status="open" id="dot-pt"></span>
+                        <div>
+                            <div class="card-title">PT Link</div>
+                            <div class="card-hint">Baked &amp; in-link IHCs</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="task-row">
+                            <span class="task-label">Baked IHCs</span>
+                            <div class="pill-group" data-field="baked_ihcs_pt_link">
+                                <button type="button" class="pill-btn" data-value="done">Done</button>
+                                <button type="button" class="pill-btn" data-value="pending">Pending</button>
+                                <button type="button" class="pill-btn" data-value="na">N/A</button>
+                            </div>
+                        </div>
+                        <div class="task-row">
+                            <span class="task-label">IHCs in PT Link</span>
+                            <div class="pill-group" data-field="ihcs_in_pt_link">
+                                <button type="button" class="pill-btn" data-value="done">Done</button>
+                                <button type="button" class="pill-btn" data-value="pending">Pending</button>
+                                <button type="button" class="pill-btn" data-value="na">N/A</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# DAKO #}
+                <div class="area-card" data-status="open" id="card-dako">
+                    <div class="card-head">
+                        <span class="status-dot" data-status="open" id="dot-dako"></span>
+                        <div>
+                            <div class="card-title">DAKO</div>
+                            <div class="card-hint">Non-baked &amp; buffer wash</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="task-row">
+                            <span class="task-label">Non-baked IHC</span>
+                            <div class="pill-group" data-field="non_baked_ihc">
+                                <button type="button" class="pill-btn" data-value="done">Done</button>
+                                <button type="button" class="pill-btn" data-value="pending">Pending</button>
+                                <button type="button" class="pill-btn" data-value="na">N/A</button>
+                            </div>
+                        </div>
+                        <div class="task-row">
+                            <span class="task-label">IHCs in Buffer Wash</span>
+                            <div class="pill-group" data-field="ihcs_in_buffer_wash">
+                                <button type="button" class="pill-btn" data-value="done">Done</button>
+                                <button type="button" class="pill-btn" data-value="pending">Pending</button>
+                                <button type="button" class="pill-btn" data-value="na">N/A</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Pathologist Requests #}
+                <div class="area-card" data-status="open" id="card-path">
+                    <div class="card-head">
+                        <span class="status-dot" data-status="open" id="dot-path"></span>
+                        <div>
+                            <div class="card-title">Pathologist Requests</div>
+                            <div class="card-hint" id="path-hint">Email · Orchard · Send Out</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="single-status">
+                            <div class="pill-group" data-field="pathologist_requests_status">
+                                <button type="button" class="pill-btn" data-value="done">Done</button>
+                                <button type="button" class="pill-btn" data-value="pending">Pending</button>
+                                <button type="button" class="pill-btn" data-value="na">N/A</button>
+                            </div>
+                        </div>
+                        <div class="pending-sources" id="path-sources">
+                            <div class="sources-label">Source of pending</div>
+                            <div class="source-chips">
+                                <button type="button" class="source-chip" id="chip-email"
+                                    data-target="src_email">Email</button>
+                                <button type="button" class="source-chip" id="chip-orchard"
+                                    data-target="src_orchard">Orchard</button>
+                                <button type="button" class="source-chip" id="chip-sendout"
+                                    data-target="src_sendout">Send Out</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# HER2 #}
+                <div class="area-card" data-status="open" id="card-her2">
+                    <div class="card-head">
+                        <span class="status-dot" data-status="open" id="dot-her2"></span>
+                        <div>
+                            <div class="card-title">HER2</div>
+                            <div class="card-hint">In-progress HER2 stains</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="single-status">
+                            <div class="pill-group" data-field="in_progress_her2">
+                                <button type="button" class="pill-btn" data-value="done">Done</button>
+                                <button type="button" class="pill-btn" data-value="pending">Pending</button>
+                                <button type="button" class="pill-btn" data-value="na">N/A</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Special Stains #}
+                <div class="area-card" data-status="open" id="card-stains">
+                    <div class="card-head">
+                        <span class="status-dot" data-status="open" id="dot-stains"></span>
+                        <div>
+                            <div class="card-title">Special Stains</div>
+                            <div class="card-hint">Upfront special stains</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="single-status">
+                            <div class="pill-group" data-field="upfront_special_stains">
+                                <button type="button" class="pill-btn" data-value="done">Done</button>
+                                <button type="button" class="pill-btn" data-value="pending">Pending</button>
+                                <button type="button" class="pill-btn" data-value="na">N/A</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Peloris Maintenance #}
+                <div class="area-card" data-status="open" id="card-peloris">
+                    <div class="card-head">
+                        <span class="status-dot" data-status="open" id="dot-peloris"></span>
+                        <div>
+                            <div class="card-title">Peloris Maintenance</div>
+                            <div class="card-hint">Tissue processor upkeep</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="single-status">
+                            <div class="pill-group" data-field="peloris_maintenance">
+                                <button type="button" class="pill-btn" data-value="done">Done</button>
+                                <button type="button" class="pill-btn" data-value="pending">Pending</button>
+                                <button type="button" class="pill-btn" data-value="na">N/A</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>{# /area-cards #}
+        </div>{# /padding #}
+
+        {# ── Sticky footer ── #}
+        <div class="workflow-footer">
+            <button type="submit"
+                formaction="{{ url_for('page2.workflow_back') }}" formmethod="post"
+                class="btn btn-secondary" style="padding: 12px 14px; border-radius: 8px; font-size: 13px;">
+                Back
+            </button>
+            <button type="submit" class="btn btn-primary"
+                style="flex: 1; padding: 12px 14px; border-radius: 8px; font-size: 14px; font-weight: 600;">
                 {% if session.department == 'Checkout' %}
-                <button type="submit" class="btn btn-primary">Continue to Notes (Page 4)</button>
+                Continue to Notes (Page 4)
                 {% else %}
-                <button type="submit" class="btn btn-primary">Continue to Notes</button>
+                Continue to notes
                 {% endif %}
-            </div>
-        </form>
-    </div>
+            </button>
+        </div>
+
+    </form>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const requestSourcesDiv = document.getElementById('request-sources');
-    const statusRadios = document.querySelectorAll('input[name="pathologist_requests_status"]');
+(function () {
+    'use strict';
 
-    function toggleRequestSources() {
-        const selectedRadio = document.querySelector('input[name="pathologist_requests_status"]:checked');
-        if (selectedRadio && selectedRadio.value === 'pending') {
-            requestSourcesDiv.style.display = 'block';
-        } else {
-            requestSourcesDiv.style.display = 'none';
-        }
+    /* ── Card status configuration ───────────────────────────────────────── */
+    const CARD_MAP = {
+        'pt':      { card: 'card-pt',     dot: 'dot-pt',     fields: ['baked_ihcs_pt_link','ihcs_in_pt_link'] },
+        'dako':    { card: 'card-dako',   dot: 'dot-dako',   fields: ['non_baked_ihc','ihcs_in_buffer_wash'] },
+        'path':    { card: 'card-path',   dot: 'dot-path',   fields: ['pathologist_requests_status'] },
+        'her2':    { card: 'card-her2',   dot: 'dot-her2',   fields: ['in_progress_her2'] },
+        'stains':  { card: 'card-stains', dot: 'dot-stains', fields: ['upfront_special_stains'] },
+        'peloris': { card: 'card-peloris',dot: 'dot-peloris',fields: ['peloris_maintenance'] },
+    };
+
+    /* ── Field → current value map ─────────────────────────────────────── */
+    const fieldValues = {
+        baked_ihcs_pt_link: null,
+        ihcs_in_pt_link: null,
+        non_baked_ihc: null,
+        ihcs_in_buffer_wash: null,
+        pathologist_requests_status: null,
+        in_progress_her2: null,
+        upfront_special_stains: null,
+        peloris_maintenance: null,
+    };
+
+    /* ── Helpers ──────────────────────────────────────────────────────── */
+    function aggregate(vals) {
+        const filled = vals.filter(Boolean);
+        if (!filled.length) return 'open';
+        if (filled.every(v => v === 'done')) return 'done';
+        if (filled.every(v => v === 'na'))   return 'na';
+        if (filled.some(v => v === 'pending')) return 'pending';
+        return 'mixed';
     }
 
-    statusRadios.forEach(function(radio) {
-        radio.addEventListener('change', toggleRequestSources);
+    function setCardStatus(key, status) {
+        const cfg = CARD_MAP[key];
+        const card = document.getElementById(cfg.card);
+        const dot  = document.getElementById(cfg.dot);
+        card.dataset.status = status;
+        dot.dataset.status  = status;
+    }
+
+    function updateProgress() {
+        const keys = Object.keys(CARD_MAP);
+        let logged = 0;
+        keys.forEach(key => {
+            const cfg = CARD_MAP[key];
+            const vals = cfg.fields.map(f => fieldValues[f]);
+            const s = aggregate(vals);
+            setCardStatus(key, s);
+            if (s !== 'open' && s !== 'mixed') logged++;
+        });
+
+        const total = keys.length;
+        const pct   = Math.round((logged / total) * 100);
+
+        document.getElementById('progress-text').textContent =
+            logged + ' of ' + total + ' areas logged';
+        document.getElementById('progress-pct').textContent  = pct + '%';
+
+        const fill = document.getElementById('progress-fill');
+        fill.style.width = pct + '%';
+        fill.classList.toggle('complete', pct === 100);
+    }
+
+    /* ── Sync to hidden radio inputs ─────────────────────────────────── */
+    function syncRadio(fieldName, value) {
+        const radios = document.querySelectorAll(
+            'input[type="radio"][name="' + fieldName + '"]');
+        radios.forEach(r => { r.checked = (r.value === value); });
+    }
+
+    /* ── Pill buttons ─────────────────────────────────────────────────── */
+    function setFieldValue(fieldName, newValue) {
+        // Toggle: clicking active pill unsets it
+        const current = fieldValues[fieldName];
+        const value   = (current === newValue) ? null : newValue;
+        fieldValues[fieldName] = value;
+
+        // Update pill UI in all groups for this field
+        document.querySelectorAll('.pill-group[data-field="' + fieldName + '"]')
+            .forEach(group => {
+                group.querySelectorAll('.pill-btn').forEach(btn => {
+                    const v = btn.dataset.value;
+                    btn.className = 'pill-btn' +
+                        (v === value ? ' active-' + value : '');
+                });
+            });
+
+        // Sync hidden radio
+        syncRadio(fieldName, value || '');
+
+        // Special: pathologist pending sources visibility
+        if (fieldName === 'pathologist_requests_status') {
+            const src = document.getElementById('path-sources');
+            const hint = document.getElementById('path-hint');
+            if (value === 'pending') {
+                src.classList.add('visible');
+                hint.textContent = 'Pending — pick source(s)';
+            } else {
+                src.classList.remove('visible');
+                hint.textContent = 'Email · Orchard · Send Out';
+            }
+        }
+
+        updateProgress();
+    }
+
+    document.querySelectorAll('.pill-group').forEach(group => {
+        group.querySelectorAll('.pill-btn').forEach(btn => {
+            btn.addEventListener('click', () =>
+                setFieldValue(group.dataset.field, btn.dataset.value));
+        });
     });
 
-    // Check initial state on page load
-    toggleRequestSources();
-});
+    /* ── Source chips ─────────────────────────────────────────────────── */
+    document.querySelectorAll('.source-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const targetId = chip.dataset.target;
+            const checkbox = document.getElementById(targetId);
+            if (!checkbox) return;
+            checkbox.checked = !checkbox.checked;
+            chip.classList.toggle('active', checkbox.checked);
+        });
+    });
+
+    /* ── Mark all done ────────────────────────────────────────────────── */
+    document.getElementById('mark-all-done').addEventListener('click', () => {
+        Object.keys(fieldValues).forEach(f => {
+            fieldValues[f] = 'done';
+            syncRadio(f, 'done');
+            document.querySelectorAll('.pill-group[data-field="' + f + '"]')
+                .forEach(group => {
+                    group.querySelectorAll('.pill-btn').forEach(btn => {
+                        btn.className = 'pill-btn' +
+                            (btn.dataset.value === 'done' ? ' active-done' : '');
+                    });
+                });
+        });
+        // Hide pending sources
+        document.getElementById('path-sources').classList.remove('visible');
+        document.getElementById('path-hint').textContent = 'Email · Orchard · Send Out';
+        updateProgress();
+    });
+
+    /* ── Clock-face time picker ───────────────────────────────────────── */
+    let clockHH = 0, clockMM = 0, clockMode = 'h';
+
+    const hiddenTime   = document.getElementById('hidden_time');
+    const timeDisplay  = document.getElementById('time-display');
+    const timeHint     = document.getElementById('time-hint');
+    const timeEditBadge = document.getElementById('time-edit-badge');
+    const toggleBtn    = document.getElementById('time-toggle-btn');
+    const clockPanel   = document.getElementById('clock-panel');
+    const segH         = document.getElementById('seg-h');
+    const segM         = document.getElementById('seg-m');
+    const modeLabel    = document.getElementById('clock-mode-label');
+    const switchBtn    = document.getElementById('clock-switch-btn');
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function clockAngle(mode) {
+        if (mode === 'h') return ((clockHH % 12) * 30 - 90) * Math.PI / 180;
+        return (clockMM * 6 - 90) * Math.PI / 180;
+    }
+
+    function renderClockFace() {
+        const wrap = document.getElementById('clock-face-wrap');
+        // Remove old buttons
+        wrap.querySelectorAll('.clock-num-btn').forEach(b => b.remove());
+
+        const svg = document.getElementById('clock-face-svg');
+        const cx = 100, cy = 100, r = 70;
+
+        const items = clockMode === 'h'
+            ? Array.from({length:12}, (_, i) => ({ n: i+1, label: String(i+1) }))
+            : Array.from({length:12}, (_, i) => ({ n: i*5, label: pad(i*5) }));
+
+        const angle = clockAngle(clockMode);
+        const tipX  = cx + Math.cos(angle) * r;
+        const tipY  = cy + Math.sin(angle) * r;
+
+        document.getElementById('cf-hand').setAttribute('x2', tipX);
+        document.getElementById('cf-hand').setAttribute('y2', tipY);
+        document.getElementById('cf-tip').setAttribute('cx', tipX);
+        document.getElementById('cf-tip').setAttribute('cy', tipY);
+
+        items.forEach((item, i) => {
+            const a = (i * 30 - 90) * Math.PI / 180;
+            const x = cx + Math.cos(a) * r;
+            const y = cy + Math.sin(a) * r;
+            const isSelected = clockMode === 'h'
+                ? (clockHH % 12 || 12) === item.n
+                : clockMM === item.n;
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'clock-num-btn' + (isSelected ? ' selected' : '');
+            btn.textContent = item.label;
+            btn.style.left = x + 'px';
+            btn.style.top  = y + 'px';
+            btn.addEventListener('click', () => {
+                if (clockMode === 'h') { clockHH = item.n; }
+                else                  { clockMM = item.n; }
+                applyTime();
+            });
+            wrap.appendChild(btn);
+        });
+    }
+
+    function applyTime() {
+        const value = pad(clockHH) + ':' + pad(clockMM);
+        hiddenTime.value = value;
+        timeDisplay.textContent = value;
+        timeDisplay.classList.remove('placeholder');
+
+        // Update clock glyph hands
+        const hAngle = ((clockHH % 12) * 30 + (clockMM / 60) * 30);
+        const mAngle = clockMM * 6;
+        document.getElementById('clock-hour-hand').setAttribute('transform', 'rotate(' + hAngle + ' 20 20)');
+        document.getElementById('clock-min-hand').setAttribute('transform',  'rotate(' + mAngle + ' 20 20)');
+
+        segH.textContent = pad(clockHH);
+        segM.textContent = pad(clockMM);
+        segH.classList.toggle('active', clockMode === 'h');
+        segM.classList.toggle('active', clockMode === 'm');
+
+        renderClockFace();
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        const open = clockPanel.classList.toggle('open');
+        toggleBtn.setAttribute('aria-expanded', open);
+        timeHint.textContent = open ? 'Tap face to set' : 'Tap to set time';
+        timeEditBadge.textContent = open ? 'Done' : 'Edit';
+        if (open) renderClockFace();
+    });
+
+    segH.addEventListener('click', () => {
+        clockMode = 'h';
+        modeLabel.textContent = 'Hour';
+        switchBtn.textContent = 'Set minutes →';
+        segH.classList.add('active');
+        segM.classList.remove('active');
+        renderClockFace();
+    });
+
+    segM.addEventListener('click', () => {
+        clockMode = 'm';
+        modeLabel.textContent = 'Minute';
+        switchBtn.textContent = '← Back to hours';
+        segM.classList.add('active');
+        segH.classList.remove('active');
+        renderClockFace();
+    });
+
+    switchBtn.addEventListener('click', () => {
+        clockMode = clockMode === 'h' ? 'm' : 'h';
+        modeLabel.textContent = clockMode === 'h' ? 'Hour' : 'Minute';
+        switchBtn.textContent = clockMode === 'h' ? 'Set minutes →' : '← Back to hours';
+        segH.classList.toggle('active', clockMode === 'h');
+        segM.classList.toggle('active', clockMode === 'm');
+        renderClockFace();
+    });
+
+    /* ── Pre-populate from server-rendered form values ─────────────────── */
+    function init() {
+        // Populate status pills from hidden radio state
+        Object.keys(fieldValues).forEach(fieldName => {
+            const checked = document.querySelector(
+                'input[type="radio"][name="' + fieldName + '"]:checked');
+            if (checked) {
+                const value = checked.value;
+                fieldValues[fieldName] = value;
+                document.querySelectorAll(
+                    '.pill-group[data-field="' + fieldName + '"] .pill-btn')
+                    .forEach(btn => {
+                        btn.className = 'pill-btn' +
+                            (btn.dataset.value === value ? ' active-' + value : '');
+                    });
+            }
+        });
+
+        // Restore pending-sources visibility
+        if (fieldValues['pathologist_requests_status'] === 'pending') {
+            document.getElementById('path-sources').classList.add('visible');
+            document.getElementById('path-hint').textContent = 'Pending — pick source(s)';
+        }
+
+        // Restore source chip states
+        [['chip-email','src_email'],['chip-orchard','src_orchard'],
+         ['chip-sendout','src_sendout']].forEach(([chipId, cbId]) => {
+            const cb   = document.getElementById(cbId);
+            const chip = document.getElementById(chipId);
+            if (cb && chip && cb.checked) chip.classList.add('active');
+        });
+
+        // Restore time
+        const tv = hiddenTime.value;
+        if (tv) {
+            const [hh, mm] = tv.split(':').map(Number);
+            clockHH = hh || 0;
+            clockMM = mm || 0;
+            timeDisplay.textContent = pad(clockHH) + ':' + pad(clockMM);
+            timeDisplay.classList.remove('placeholder');
+            const hAngle = ((clockHH % 12) * 30 + (clockMM / 60) * 30);
+            const mAngle = clockMM * 6;
+            document.getElementById('clock-hour-hand').setAttribute('transform', 'rotate(' + hAngle + ' 20 20)');
+            document.getElementById('clock-min-hand').setAttribute('transform',  'rotate(' + mAngle + ' 20 20)');
+        }
+
+        updateProgress();
+    }
+
+    init();
+
+})();
 </script>
 {% endblock %}

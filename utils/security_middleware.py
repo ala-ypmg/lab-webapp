@@ -62,7 +62,6 @@ def setup_security_headers(app):
         strict_transport_security=force_https,  # HSTS only in production
         strict_transport_security_max_age=31536000,  # 1 year
         content_security_policy=csp,
-        content_security_policy_nonce_in=['script-src'],
         referrer_policy='strict-origin-when-cross-origin',
         feature_policy={
             'geolocation': "'none'",

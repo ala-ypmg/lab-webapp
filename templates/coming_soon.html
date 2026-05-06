@@ -13,12 +13,13 @@
                 This section is currently under development.
             </p>
             <p style="font-size: 16px; color: #666;">
-                Know what you want to see here? Email it to Gale at <a href="mailto:ala@ypmg.com">ala@ypmg.com</a>
+                Know what you want to see here? Email it to Gale at <a href="mailto:ala@ypmg.com">ala@ypmg.com</a>. Or just yell at Gale in Vietnamese. Southern dialect is preferred. 
             </p>
         </div>
 
         <div class="form-actions">
             <form action="{{ url_for('auth.logout') }}" method="post" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-secondary">Logout</button>
             </form>
         </div>

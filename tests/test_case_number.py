@@ -31,6 +31,7 @@ def _load_module(rel_path, module_name):
 
 _cn = _load_module("utils/case_number.py", "case_number")
 validate_case_number = _cn.validate_case_number
+contains_case_number = _cn.contains_case_number
 CASE_NUMBER_PATTERN = _cn.CASE_NUMBER_PATTERN
 
 import pytest
@@ -188,3 +189,47 @@ def test_bone_marrow_eligible_names():
     _md = _load_module("data/md_list.py", "md_list")
     last_names = {e["last"] for e in _md.BONE_MARROW_ELIGIBLE}
     assert last_names == {"Babaidorabad", "Hardee", "Starshak"}
+
+
+# ---------------------------------------------------------------------------
+# contains_case_number
+# ---------------------------------------------------------------------------
+
+def test_contains_embedded_case_number():
+    """A case number embedded in a sentence is detected."""
+    assert contains_case_number("see case 25RR-15616 for details") is True
+
+
+def test_contains_case_number_lowercase_prefix():
+    """Lowercase prefix variant is still detected (case-insensitive)."""
+    assert contains_case_number("deferred: 26crn-40013") is True
+
+
+def test_contains_case_number_standalone():
+    """A bare case number string (no surrounding text) is detected."""
+    assert contains_case_number("25RR-15616") is True
+
+
+def test_contains_no_case_number_plain_prose():
+    """Plain prose without a case number returns False."""
+    assert contains_case_number("all cases received and accessioned normally") is False
+
+
+def test_contains_no_case_number_empty_string():
+    """Empty string returns False."""
+    assert contains_case_number("") is False
+
+
+def test_contains_no_case_number_non_string():
+    """Non-string input returns False without raising."""
+    assert contains_case_number(None) is False  # type: ignore
+
+
+def test_contains_no_case_number_partial_match():
+    """A pattern with only 1 year digit does not match (needs exactly 2)."""
+    assert contains_case_number("5RR-15616") is False
+
+
+def test_contains_no_case_number_too_short_suffix():
+    """Suffix with only 4 digits does not match."""
+    assert contains_case_number("25RR-1561") is False
